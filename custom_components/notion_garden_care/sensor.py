@@ -5,6 +5,7 @@ import logging
 from datetime import timedelta
 from typing import Any
 
+import httpx
 from notion_client import Client
 from notion_client.errors import APIResponseError
 
@@ -34,17 +35,25 @@ async def async_setup_entry(
     """Set up Notion Garden Care sensors based on a config entry."""
     notion = hass.data[DOMAIN][config_entry.entry_id]["notion"]
     database_id = hass.data[DOMAIN][config_entry.entry_id]["database_id"]
+    notion_token = config_entry.data["notion_token"]
 
     async def async_update_data():
         """Fetch data from Notion API."""
         try:
-            return await hass.async_add_executor_job(
+            _LOGGER.debug("Fetching data from Notion database: %s", database_id)
+            data = await hass.async_add_executor_job(
                 _fetch_database_data,
-                notion,
+                notion_token,
                 database_id
             )
+            _LOGGER.info("Successfully fetched %d plants from Notion", len(data.get("results", [])))
+            return data
         except APIResponseError as err:
+            _LOGGER.error("Notion API error: %s", err)
             raise UpdateFailed(f"Error communicating with Notion API: {err}")
+        except Exception as err:
+            _LOGGER.error("Unexpected error fetching data: %s", err, exc_info=True)
+            raise UpdateFailed(f"Unexpected error: {err}")
 
     coordinator = DataUpdateCoordinator(
         hass,
@@ -56,6 +65,9 @@ async def async_setup_entry(
 
     # Fetch initial data
     await coordinator.async_config_entry_first_refresh()
+
+    # Store coordinator for service access
+    hass.data[DOMAIN][config_entry.entry_id]["coordinator"] = coordinator
 
     # Create sensors
     sensors = [
@@ -69,11 +81,31 @@ async def async_setup_entry(
     async_add_entities(sensors)
 
 
-def _fetch_database_data(notion: Client, database_id: str) -> dict[str, Any]:
-    """Fetch data from Notion database."""
-    # Query the database for all pages using data_sources endpoint
-    response = notion.data_sources.query(**{"data_source_id": database_id})
-    return response
+def _fetch_database_data(notion_token: str, database_id: str) -> dict[str, Any]:
+    """Fetch data from Notion database using direct API call."""
+    _LOGGER.debug("Querying Notion database: %s", database_id)
+    try:
+        # Use httpx to make direct API call
+        url = f"https://api.notion.com/v1/databases/{database_id}/query"
+        headers = {
+            "Authorization": f"Bearer {notion_token}",
+            "Notion-Version": "2022-06-28",
+            "Content-Type": "application/json"
+        }
+
+        response = httpx.post(url, headers=headers, json={}, timeout=30.0)
+        response.raise_for_status()
+
+        data = response.json()
+        _LOGGER.debug("Query response keys: %s", data.keys() if data else "None")
+        _LOGGER.info("Successfully fetched %d results", len(data.get("results", [])))
+        return data
+    except httpx.HTTPError as err:
+        _LOGGER.error("Error in _fetch_database_data: %s", err, exc_info=True)
+        raise APIResponseError(str(err)) from err
+    except Exception as err:
+        _LOGGER.error("Unexpected error in _fetch_database_data: %s", err, exc_info=True)
+        raise
 
 
 class NotionGardenCareDatabaseSensor(CoordinatorEntity, SensorEntity):
@@ -142,15 +174,21 @@ class PlantsToWaterSensor(CoordinatorEntity, SensorEntity):
             try:
                 next_water_prop = plant.get("properties", {}).get("Next Water", {})
                 if next_water_prop.get("formula"):
-                    next_water_date = next_water_prop["formula"].get("date")
-                    if next_water_date and next_water_date <= today:
-                        name = self._get_plant_name(plant)
-                        if name:
-                            plants.append({
-                                "name": name,
-                                "page_id": plant["id"],
-                                "due_date": next_water_date,
-                            })
+                    formula_data = next_water_prop["formula"]
+                    # Check if formula type is date
+                    if formula_data.get("type") == "date":
+                        date_obj = formula_data.get("date")
+                        if date_obj:
+                            # Extract the start date from the date object
+                            next_water_date = date_obj.get("start") if isinstance(date_obj, dict) else date_obj
+                            if next_water_date and next_water_date <= today:
+                                name = self._get_plant_name(plant)
+                                if name:
+                                    plants.append({
+                                        "name": name,
+                                        "page_id": plant["id"],
+                                        "due_date": next_water_date,
+                                    })
             except (KeyError, TypeError):
                 continue
 
@@ -205,15 +243,21 @@ class PlantsToFertilizeSensor(CoordinatorEntity, SensorEntity):
             try:
                 next_fertilize_prop = plant.get("properties", {}).get("Next Fertilize", {})
                 if next_fertilize_prop.get("formula"):
-                    next_fertilize_date = next_fertilize_prop["formula"].get("date")
-                    if next_fertilize_date and next_fertilize_date <= today:
-                        name = self._get_plant_name(plant)
-                        if name:
-                            plants.append({
-                                "name": name,
-                                "page_id": plant["id"],
-                                "due_date": next_fertilize_date,
-                            })
+                    formula_data = next_fertilize_prop["formula"]
+                    # Check if formula type is date
+                    if formula_data.get("type") == "date":
+                        date_obj = formula_data.get("date")
+                        if date_obj:
+                            # Extract the start date from the date object
+                            next_fertilize_date = date_obj.get("start") if isinstance(date_obj, dict) else date_obj
+                            if next_fertilize_date and next_fertilize_date <= today:
+                                name = self._get_plant_name(plant)
+                                if name:
+                                    plants.append({
+                                        "name": name,
+                                        "page_id": plant["id"],
+                                        "due_date": next_fertilize_date,
+                                    })
             except (KeyError, TypeError):
                 continue
 

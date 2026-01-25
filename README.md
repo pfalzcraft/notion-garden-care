@@ -98,6 +98,42 @@ After setup, you'll have these sensors:
 - `sensor.plants_to_prune` - Plants to prune this month
 - `sensor.active_plants_count` - Total active plants
 
+#### 📋 Detailed Sensor Logic
+
+Understanding when plants appear in each sensor:
+
+**🚰 Plants to Water** (`sensor.plants_to_water`)
+- **Shows when:** The "Next Water" date is **today or in the past**
+- **Example:** If today is Jan 25 and "Next Water" shows Jan 24 or Jan 25 → Plant appears in sensor
+- **Formula:** `Next Water = Last Watered + Water Interval (days)`
+- **Attributes:** Lists plant names and due dates
+- **Updates:** Every hour automatically
+
+**🌿 Plants to Fertilize** (`sensor.plants_to_fertilize`)
+- **Shows when:** The "Next Fertilize" date is **today or in the past**
+- **Example:** If today is Jan 25 and "Next Fertilize" shows Jan 20 → Plant appears in sensor
+- **Formula:** `Next Fertilize = Last Fertilized + Fertilize Interval (days)`
+- **Attributes:** Lists plant names and due dates
+- **Updates:** Every hour automatically
+
+**✂️ Plants to Prune** (`sensor.plants_to_prune`)
+- **Shows when:** The **current month** is in the plant's "Prune Months" list
+- **Example:** If today is January and plant has "January, March" in Prune Months → Plant appears
+- **Note:** Month-based (not date-based like watering/fertilizing)
+- **Attributes:** Lists plant names and all their pruning months
+- **Updates:** Every hour automatically
+
+**🌺 Active Plants Count** (`sensor.active_plants_count`)
+- **Shows when:** The "Active" checkbox is **checked**
+- **Purpose:** Track only plants you're actively caring for (excludes dead/removed plants)
+- **Example:** 10 plants total, 2 marked inactive → Sensor shows 8
+- **Updates:** Every hour automatically
+
+**🗄️ Notion Garden Care Database** (`sensor.notion_garden_care_database`)
+- **Shows:** Total count of **all plants** in the database (no filtering)
+- **Attributes:** Contains full raw data from Notion
+- **Note:** All plants are counted regardless of active status
+
 ### Services
 
 Update your plants from Home Assistant:

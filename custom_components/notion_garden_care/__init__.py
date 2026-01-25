@@ -121,8 +121,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     async def handle_refresh_data(call: ServiceCall) -> None:
         """Handle refresh database service."""
-        # Trigger update of all sensors
-        await hass.helpers.entity_component.async_update_entity("sensor.notion_garden_care_database")
+        # Get the coordinator and trigger a refresh
+        coordinator = hass.data[DOMAIN][entry.entry_id].get("coordinator")
+        if coordinator:
+            await coordinator.async_request_refresh()
+            _LOGGER.info("Database refresh requested")
+        else:
+            _LOGGER.error("Coordinator not found for refresh")
 
     # Register all services
     hass.services.async_register(
@@ -212,7 +217,9 @@ async def _update_date_property(
         _LOGGER.info("Updated %s for page %s", property_name, page_id)
 
         # Trigger sensor refresh
-        await hass.helpers.entity_component.async_update_entity("sensor.notion_garden_care_database")
+        coordinator = hass.data[DOMAIN][entry_id].get("coordinator")
+        if coordinator:
+            await coordinator.async_request_refresh()
 
     except APIResponseError as err:
         _LOGGER.error("Failed to update property: %s", err)

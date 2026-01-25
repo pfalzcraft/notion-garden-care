@@ -9,7 +9,8 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/yourusername/notion-garden-care/issues",
   "requirements": [
-    "notion-client>=2.2.1"
+    "notion-client>=2.2.1",
+    "httpx>=0.27.0"
   ],
   "version": "1.0.0"
 }
