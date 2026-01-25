@@ -60,8 +60,7 @@ async def validate_token(hass: HomeAssistant, token: str) -> dict[str, str]:
         notion = Client(auth=token)
         # Test the token by searching for pages
         await hass.async_add_executor_job(
-            notion.search,
-            {"page_size": 1}
+            lambda: notion.search(page_size=1)
         )
         return {"title": "Notion Garden Care"}
     except APIResponseError as err:
@@ -75,8 +74,10 @@ async def find_pages(hass: HomeAssistant, token: str) -> list[dict]:
     try:
         notion = Client(auth=token)
         response = await hass.async_add_executor_job(
-            notion.search,
-            {"filter": {"property": "object", "value": "page"}, "page_size": 10}
+            lambda: notion.search(
+                filter={"property": "object", "value": "page"},
+                page_size=10
+            )
         )
         return response.get("results", [])
     except APIResponseError:
@@ -90,6 +91,7 @@ async def create_database(
     add_examples: bool = True
 ) -> str:
     """Create the Garden Care database in Notion."""
+    import asyncio
     notion = Client(auth=token)
 
     try:
@@ -101,9 +103,23 @@ async def create_database(
         )
 
         database_id = database["id"]
+        _LOGGER.info("Database created with ID: %s", database_id)
+        _LOGGER.debug("Database properties: %s", database.get("properties", {}).keys())
 
         # Add example plants if requested
         if add_examples:
+            # Wait a bit for Notion to fully process the database creation
+            await asyncio.sleep(2)
+
+            # Verify database exists and has properties before adding examples
+            try:
+                db_check = await hass.async_add_executor_job(
+                    lambda: notion.databases.retrieve(database_id=database_id)
+                )
+                _LOGGER.info("Database verified. Properties: %s", list(db_check.get("properties", {}).keys()))
+            except Exception as verify_err:
+                _LOGGER.warning("Could not verify database: %s", verify_err)
+
             await hass.async_add_executor_job(
                 _add_example_plants,
                 notion,
@@ -119,12 +135,16 @@ async def create_database(
 
 def _create_database_sync(notion: Client, parent_page_id: str) -> dict:
     """Synchronously create the database."""
-    return notion.databases.create(
+    _LOGGER.info("Creating database with parent_page_id: %s", parent_page_id)
+
+    result = notion.databases.create(
         parent={"type": "page_id", "page_id": parent_page_id},
         title=[{"type": "text", "text": {"content": "Garden Care"}}],
-        properties={
-            "Name": {"title": {}},
+        initial_data_source={
+            "properties": {
+            "Name": {"type": "title", "title": {}},
             "Type": {
+                "type": "select",
                 "select": {
                     "options": [{"name": t, "color": c} for t, c in zip(
                         PLANT_TYPES,
@@ -133,6 +153,7 @@ def _create_database_sync(notion: Client, parent_page_id: str) -> dict:
                 }
             },
             "Location": {
+                "type": "select",
                 "select": {
                     "options": [{"name": l, "color": c} for l, c in zip(
                         LOCATIONS,
@@ -140,23 +161,26 @@ def _create_database_sync(notion: Client, parent_page_id: str) -> dict:
                     )]
                 }
             },
-            "Active": {"checkbox": {}},
-            "Fertilize Interval (days)": {"number": {"format": "number"}},
-            "Last Fertilized": {"date": {}},
+            "Active": {"type": "checkbox", "checkbox": {}},
+            "Fertilize Interval (days)": {"type": "number", "number": {"format": "number"}},
+            "Last Fertilized": {"type": "date", "date": {}},
             "Next Fertilize": {
+                "type": "formula",
                 "formula": {
                     "expression": 'dateAdd(prop("Last Fertilized"), prop("Fertilize Interval (days)"), "days")'
                 }
             },
-            "Fertilizer Type": {"rich_text": {}},
-            "Water Interval (days)": {"number": {"format": "number"}},
-            "Last Watered": {"date": {}},
+            "Fertilizer Type": {"type": "rich_text", "rich_text": {}},
+            "Water Interval (days)": {"type": "number", "number": {"format": "number"}},
+            "Last Watered": {"type": "date", "date": {}},
             "Next Water": {
+                "type": "formula",
                 "formula": {
                     "expression": 'dateAdd(prop("Last Watered"), prop("Water Interval (days)"), "days")'
                 }
             },
             "Water Amount": {
+                "type": "select",
                 "select": {
                     "options": [{"name": w, "color": c} for w, c in zip(
                         WATER_AMOUNTS,
@@ -165,20 +189,23 @@ def _create_database_sync(notion: Client, parent_page_id: str) -> dict:
                 }
             },
             "Prune Months": {
+                "type": "multi_select",
                 "multi_select": {
                     "options": [{"name": m, "color": _get_month_color(i)} for i, m in enumerate(MONTHS)]
                 }
             },
-            "Prune Instructions": {"rich_text": {}},
-            "Last Pruned": {"date": {}},
+            "Prune Instructions": {"type": "rich_text", "rich_text": {}},
+            "Last Pruned": {"type": "date", "date": {}},
             # Harvest & Growth
             "Harvest Months": {
+                "type": "multi_select",
                 "multi_select": {
                     "options": [{"name": m, "color": _get_month_color(i)} for i, m in enumerate(MONTHS)]
                 }
             },
-            "Harvest Notes": {"rich_text": {}},
+            "Harvest Notes": {"type": "rich_text", "rich_text": {}},
             "Sun Exposure": {
+                "type": "select",
                 "select": {
                     "options": [{"name": s, "color": c} for s, c in zip(
                         SUN_EXPOSURE,
@@ -187,9 +214,10 @@ def _create_database_sync(notion: Client, parent_page_id: str) -> dict:
                 }
             },
             # Companion Planting & Safety
-            "Companion Plants": {"rich_text": {}},
-            "Bee Friendly": {"checkbox": {}},
+            "Companion Plants": {"type": "rich_text", "rich_text": {}},
+            "Bee Friendly": {"type": "checkbox", "checkbox": {}},
             "Toxicity": {
+                "type": "select",
                 "select": {
                     "options": [{"name": t, "color": c} for t, c in zip(
                         TOXICITY,
@@ -198,19 +226,26 @@ def _create_database_sync(notion: Client, parent_page_id: str) -> dict:
                 }
             },
             # Lawn Care (Aeration)
-            "Aeration Interval (days)": {"number": {"format": "number"}},
-            "Last Aeration": {"date": {}},
+            "Aeration Interval (days)": {"type": "number", "number": {"format": "number"}},
+            "Last Aeration": {"type": "date", "date": {}},
             "Next Aeration": {
+                "type": "formula",
                 "formula": {
                     "expression": 'dateAdd(prop("Last Aeration"), prop("Aeration Interval (days)"), "days")'
                 }
             },
             # General Care & Notes
-            "Care Instructions": {"rich_text": {}},
-            "Special Notes": {"rich_text": {}},
-            "Notes": {"rich_text": {}}
+            "Care Instructions": {"type": "rich_text", "rich_text": {}},
+            "Special Notes": {"type": "rich_text", "rich_text": {}},
+            "Notes": {"type": "rich_text", "rich_text": {}}
+            }
         }
     )
+
+    _LOGGER.info("Database created successfully. ID: %s", result.get("id"))
+    _LOGGER.debug("Database properties created: %s", list(result.get("properties", {}).keys()))
+
+    return result
 
 
 def _get_month_color(month_index: int) -> str:
@@ -224,6 +259,8 @@ def _get_month_color(month_index: int) -> str:
 
 def _add_example_plants(notion: Client, database_id: str) -> None:
     """Add example plants to the database."""
+    _LOGGER.info("Adding %d example plants to database %s", len(EXAMPLE_PLANTS), database_id)
+
     for plant_data in EXAMPLE_PLANTS:
         try:
             # Calculate dates
@@ -317,8 +354,9 @@ def _add_example_plants(notion: Client, database_id: str) -> None:
                 parent={"database_id": database_id},
                 properties=properties
             )
+            _LOGGER.info("Successfully added example plant: %s", plant_data["Name"])
         except Exception as err:
-            _LOGGER.warning("Failed to add example plant %s: %s", plant_data["Name"], err)
+            _LOGGER.error("Failed to add example plant %s: %s", plant_data["Name"], err, exc_info=True)
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -370,11 +408,30 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
                 # Extract page ID from URL if provided
                 if "notion.so/" in parent_page_id:
+                    # URL format: https://www.notion.so/Title-UUID or https://www.notion.so/UUID
                     parts = parent_page_id.split("/")
-                    for part in parts:
-                        if len(part) >= 32:
-                            parent_page_id = part.replace("-", "")[:32]
-                            break
+                    last_part = parts[-1] if parts else parent_page_id
+
+                    # Remove query parameters
+                    if "?" in last_part:
+                        last_part = last_part.split("?")[0]
+
+                    # If format is Title-UUID, get the UUID part (last 32 chars after removing dashes)
+                    if "-" in last_part:
+                        # Get all parts after splitting by dash
+                        uuid_part = last_part.split("-")[-1]
+                        # If the last part is too short, it might be Title-UUID format
+                        if len(uuid_part) < 32:
+                            # Take the full string, remove all dashes and get last 32 chars
+                            clean = last_part.replace("-", "")
+                            if len(clean) >= 32:
+                                parent_page_id = clean[-32:]
+                            else:
+                                parent_page_id = uuid_part
+                        else:
+                            parent_page_id = uuid_part
+                    else:
+                        parent_page_id = last_part.replace("-", "")[:32]
 
                 self.data[CONF_PARENT_PAGE_ID] = parent_page_id
 

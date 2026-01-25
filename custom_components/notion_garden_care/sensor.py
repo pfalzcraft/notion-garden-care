@@ -18,9 +18,12 @@ from homeassistant.helpers.update_coordinator import (
     UpdateFailed,
 )
 
-from .const import DOMAIN, SCAN_INTERVAL
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
+
+# Scan interval in seconds - convert to timedelta
+SCAN_INTERVAL = timedelta(seconds=3600)
 
 
 async def async_setup_entry(
@@ -48,7 +51,7 @@ async def async_setup_entry(
         _LOGGER,
         name="notion_garden_care",
         update_method=async_update_data,
-        update_interval=timedelta(seconds=SCAN_INTERVAL),
+        update_interval=SCAN_INTERVAL,
     )
 
     # Fetch initial data
@@ -68,7 +71,8 @@ async def async_setup_entry(
 
 def _fetch_database_data(notion: Client, database_id: str) -> dict[str, Any]:
     """Fetch data from Notion database."""
-    response = notion.databases.query(database_id=database_id)
+    # Query the database for all pages using data_sources endpoint
+    response = notion.data_sources.query(**{"data_source_id": database_id})
     return response
 
 
