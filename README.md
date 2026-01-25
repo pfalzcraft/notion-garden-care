@@ -4,290 +4,278 @@ Manage your garden with Notion and automate reminders with Home Assistant. Track
 
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-Integration-41BDF5?logo=homeassistant)
 ![Notion](https://img.shields.io/badge/Notion-Database-000000?logo=notion)
-![Python](https://img.shields.io/badge/Python-3.8+-3776AB?logo=python)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
 ## ✨ Features
 
-- 🌿 **Notion Database** - Beautiful, flexible plant management
-- 📅 **Automated Reminders** - Never forget to water, fertilize, or prune
-- 📊 **Dashboard** - Visual overview of all garden tasks
-- 🔄 **Auto-sync** - Bidirectional sync between Notion and Home Assistant
+- 🌿 **Automatic Setup** - No coding required, everything happens in Home Assistant UI
+- 🗄️ **Auto-Create Database** - Integration creates the Notion database for you
+- 📅 **Smart Reminders** - Never forget to water, fertilize, or prune
+- 📊 **Beautiful Dashboard** - Visual overview of all garden tasks
+- 🔄 **Bidirectional Sync** - Update Notion from Home Assistant and vice versa
 - 🪴 **Example Plants** - Pre-configured templates to get started
-- 🔔 **Smart Notifications** - Daily and monthly reminders
 - 📱 **Mobile Friendly** - Works on all Home Assistant apps
 
-## 📸 Screenshots
+### Extended Plant Information
 
-*Add screenshots of your Notion database and Home Assistant dashboard here*
+- ☀️ **Sun Exposure** - Track light requirements (Full Sun, Partial Sun, Shade)
+- 🍅 **Harvest Info** - Record harvest months and notes
+- 🌻 **Companion Plants** - Get planting suggestions
+- 🐝 **Bee Friendly** - Mark pollinator-friendly plants
+- ⚠️ **Toxicity Warnings** - Safety info for pets and children
+- 🌱 **Lawn Care** - Track aeration schedules
 
-## 🚀 Quick Start
+## 🚀 Quick Start (3 Steps!)
 
-### Prerequisites
-
-- [Notion](https://notion.so) account (free tier works!)
-- [Home Assistant](https://www.home-assistant.io/) installation
-- Python 3.8+ (for database setup)
-
-### Installation
-
-#### Step 1: Clone this Repository
-
-```bash
-git clone https://github.com/yourusername/notion-garden-care.git
-cd notion-garden-care
-```
-
-#### Step 2: Create Notion Integration
+### Step 1: Create Notion Integration (2 minutes)
 
 1. Go to [https://www.notion.so/my-integrations](https://www.notion.so/my-integrations)
 2. Click **"+ New integration"**
 3. Name: `Home Assistant Garden`
 4. Click **"Submit"**
-5. **Copy the "Internal Integration Secret"** (starts with `secret_...`)
+5. **Copy the token** (starts with `secret_...` or `ntn_...`)
 
-#### Step 3: Create Parent Page in Notion
+### Step 2: Create a Page in Notion (1 minute)
 
 1. Open Notion
-2. Create a new page (e.g., "Gardening" or "Home Assistant")
-3. Connect the integration to this page:
-   - Click **"..."** (top right)
+2. Create a new blank page (e.g., "Gardening" or "Home Assistant")
+3. **Connect your integration:**
+   - Click **"..."** (three dots, top right)
    - Select **"Connections"**
    - Add **"Home Assistant Garden"**
    - Confirm
+4. **Copy the page URL** from your browser
 
-#### Step 4: Setup Python Environment
+### Step 3: Install & Configure in Home Assistant (3 minutes)
 
+#### Install the Integration
+
+**Option A: HACS (Coming Soon)**
+1. Open HACS → Integrations
+2. Search "Notion Garden Care"
+3. Install
+
+**Option B: Manual Install**
 ```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Copy .env.example to .env
-cp .env.example .env
-
-# Edit .env and add your Notion token
-# NOTION_TOKEN=your_token_here
+cd /config/custom_components
+git clone https://github.com/pfalzcraft/notion-garden-care.git
+cp -r notion-garden-care/custom_components/notion_garden_care .
+rm -rf notion-garden-care
 ```
 
-#### Step 5: Create Notion Database Automatically
+Restart Home Assistant.
 
-```bash
-python create_database_en.py
-```
+#### Setup in UI
 
-This script will:
-- ✅ Create the "Garden Care" database with all properties
-- ✅ Add formula fields for automatic date calculations
-- ✅ Populate with example plants (Tomatoes, Rose Bush, Apple Tree, Basil)
-- ✅ Save the Database ID to `.env`
+1. Go to **Settings** → **Devices & Services**
+2. Click **"+ Add Integration"**
+3. Search **"Notion Garden Care"**
+4. Follow the setup wizard:
+   - **Screen 1:** Paste your Notion token
+   - **Screen 2:** Paste your page URL
+   - ✅ Keep "Create database automatically" checked
+   - ✅ Keep "Add example plants" checked
+   - Click **Submit**
 
-#### Step 6: Configure Home Assistant
+**That's it!** 🎉
 
-1. Copy the configuration files to your Home Assistant config directory:
+The integration will:
+- ✅ Create the "Garden Care" database in Notion
+- ✅ Set up all properties and formulas
+- ✅ Add 5 example plants (Tomatoes, Rose, Apple Tree, Basil, Lawn)
+- ✅ Create 5 sensors in Home Assistant
+- ✅ Register 4 services for plant updates
 
-```bash
-# Copy to your Home Assistant config folder
-cp homeassistant/config/configuration.yaml <your-ha-config-path>/packages/garden_care.yaml
-cp homeassistant/config/secrets.yaml <your-ha-config-path>/secrets.yaml
-cp homeassistant/config/automations.yaml <your-ha-config-path>/automations.yaml
-```
-
-2. Update `secrets.yaml` with your credentials:
-
-```yaml
-notion_token: "your_notion_token_here"
-notion_auth_header: "Bearer your_notion_token_here"
-notion_database_id: "your_database_id_here"
-notion_database_query_url: "https://api.notion.com/v1/databases/your_database_id_here/query"
-```
-
-3. Restart Home Assistant
-
-#### Step 7: Add Dashboard (Optional)
-
-1. In Home Assistant, go to **Settings** → **Dashboards**
-2. Create a new dashboard or edit existing
-3. Click **"..."** → **"Edit"** → **"Raw Configuration Editor"**
-4. Paste contents from `homeassistant/config/dashboard.yaml`
-5. Save
-
-## 📊 Notion Database Structure
-
-The database includes the following properties:
-
-### Basic Information
-- **Name** (Title) - Plant name
-- **Type** (Select) - Plant, Tree, Shrub, Vegetable, Herb, Lawn
-- **Location** (Select) - Garden, Balcony, Terrace, Conservatory, Indoor
-- **Active** (Checkbox) - Is the plant still active?
-
-### Watering
-- **Water Interval (days)** (Number) - Days between watering
-- **Last Watered** (Date) - Date of last watering
-- **Next Water** (Formula) - Auto-calculated next watering date
-- **Water Amount** (Select) - Low, Medium, High
-
-### Fertilizing
-- **Fertilize Interval (days)** (Number) - Days between fertilizing
-- **Last Fertilized** (Date) - Date of last fertilizing
-- **Next Fertilize** (Formula) - Auto-calculated next fertilizing date
-- **Fertilizer Type** (Text) - Type of fertilizer used
-
-### Pruning
-- **Prune Months** (Multi-select) - Months when pruning is needed
-- **Prune Instructions** (Text) - Detailed pruning instructions
-- **Last Pruned** (Date) - Date of last pruning
-
-### Care & Notes
-- **Care Instructions** (Text) - General care instructions
-- **Special Notes** (Text) - Any special requirements
-- **Notes** (Text) - Free-form notes
-
-## 🎯 How It Works
-
-### Data Flow
-
-```
-┌─────────────┐         ┌──────────────────┐         ┌─────────────────┐
-│   Notion    │◄────────┤  Home Assistant  ├────────►│ Notifications   │
-│  Database   │  Sync   │  REST API        │  Send   │ (Mobile/Web)    │
-└─────────────┘         └──────────────────┘         └─────────────────┘
-       │                         │
-       │                         │
-       ▼                         ▼
-   Add/Edit Plants          Create Sensors
-   Set Intervals            Run Automations
-```
+## 📊 What You Get
 
 ### Sensors
 
-Home Assistant creates the following sensors:
+After setup, you'll have these sensors:
 
-- `sensor.notion_garden_care_database` - Raw data from Notion
-- `sensor.plants_to_water` - Count of plants needing water
-- `sensor.plants_to_fertilize` - Count of plants needing fertilizer
-- `sensor.plants_to_prune` - Count of plants to prune this month
+- `sensor.notion_garden_care_database` - All plants from Notion
+- `sensor.plants_to_water` - Plants needing water today
+- `sensor.plants_to_fertilize` - Plants needing fertilizer today
+- `sensor.plants_to_prune` - Plants to prune this month
 - `sensor.active_plants_count` - Total active plants
 
-### Automations
+### Services
 
-- **Daily 7 AM** - Watering reminder (if plants need water)
-- **Daily 8 AM** - Fertilizing reminder (if plants need fertilizer)
-- **Monthly 1st** - Pruning reminder (for current month)
-- **On Change** - Persistent notifications in Home Assistant
-
-## ⚙️ Customization
-
-### Change Notification Times
-
-Edit `automations.yaml`:
+Update your plants from Home Assistant:
 
 ```yaml
-trigger:
-  - platform: time
-    at: "07:00:00"  # Change to your preferred time
-```
-
-### Change Notification Service
-
-Replace `notify.notify` with your service:
-
-```yaml
-action:
-  - service: notify.mobile_app_your_device  # Your notification service
-```
-
-Available services:
-- `notify.mobile_app_your_phone` - Home Assistant Companion App
-- `notify.telegram` - Telegram
-- `notify.pushbullet` - Pushbullet
-- `persistent_notification.create` - Home Assistant UI (default)
-
-### Add Custom Plant Types
-
-Edit Notion database:
-1. Go to Notion database
-2. Click on "Type" column
-3. Add more options (e.g., "Flower", "Cactus", "Fern")
-
-## 🔄 Update Data from Notion to Home Assistant
-
-The sensor automatically updates every hour. To manually refresh:
-
-1. **Developer Tools** → **Services**
-2. Service: `homeassistant.update_entity`
-3. Entity: `sensor.notion_garden_care_database`
-4. Call Service
-
-## 📝 Update Data from Home Assistant to Notion
-
-Use the provided REST commands:
-
-### Mark Plant as Watered
-
-```yaml
-service: rest_command.notion_update_last_watered
+# Mark plant as watered
+service: notion_garden_care.mark_as_watered
 data:
-  page_id: "your_plant_page_id"
-```
+  plant_name: "Tomatoes"
 
-### Mark Plant as Fertilized
-
-```yaml
-service: rest_command.notion_update_last_fertilized
+# Mark plant as fertilized
+service: notion_garden_care.mark_as_fertilized
 data:
-  page_id: "your_plant_page_id"
-```
+  plant_name: "Rose Bush"
 
-### Mark Plant as Pruned
-
-```yaml
-service: rest_command.notion_update_last_pruned
+# Mark plant as pruned
+service: notion_garden_care.mark_as_pruned
 data:
-  page_id: "your_plant_page_id"
+  plant_name: "Apple Tree"
+
+# Refresh data from Notion
+service: notion_garden_care.refresh_database
 ```
 
-*To get the `page_id`, check the `plant_details` attribute in the sensors.*
+### Automation Blueprints
+
+Set up reminders in seconds:
+
+1. **Settings** → **Automations & Scenes**
+2. **Create Automation** → **Start with blueprint**
+3. Choose:
+   - **Garden Care - Watering Reminder** (daily)
+   - **Garden Care - Fertilizing Reminder** (daily)
+   - **Garden Care - Pruning Reminder** (monthly)
+
+## 📱 Add Dashboard (Optional)
+
+1. **Settings** → **Dashboards** → Your Dashboard
+2. **Edit** → **+ Add Card** → **Manual**
+3. Copy YAML from [`homeassistant/config/dashboard.yaml`](homeassistant/config/dashboard.yaml)
+
+Or create cards manually:
+- Glance card with all sensors
+- Conditional markdown cards for task lists
+
+## 🌱 Notion Database Structure
+
+The integration creates these properties automatically:
+
+### Basic Info
+- **Name** - Plant name
+- **Type** - Plant, Tree, Shrub, Vegetable, Herb, Lawn
+- **Location** - Garden, Balcony, Terrace, etc.
+- **Active** - Is the plant still active?
+
+### Sun & Environment
+- **Sun Exposure** - Full Sun, Partial Sun, Partial Shade, Full Shade
+
+### Watering
+- **Water Interval (days)** - Days between watering
+- **Last Watered** - Date of last watering
+- **Next Water** - Auto-calculated next watering date ✨
+- **Water Amount** - Low, Medium, High
+
+### Fertilizing
+- **Fertilize Interval (days)** - Days between fertilizing
+- **Last Fertilized** - Date of last fertilizing
+- **Next Fertilize** - Auto-calculated next date ✨
+- **Fertilizer Type** - Type of fertilizer
+
+### Pruning
+- **Prune Months** - Months when pruning needed
+- **Prune Instructions** - Detailed instructions
+- **Last Pruned** - Date of last pruning
+
+### Harvest
+- **Harvest Months** - When to harvest
+- **Harvest Notes** - Harvest tips and timing
+
+### Companion & Safety
+- **Companion Plants** - Plants that grow well together
+- **Bee Friendly** - Is it good for pollinators?
+- **Toxicity** - Safety warnings (Safe, Toxic to Pets, Toxic to Children, Toxic to Both)
+
+### Lawn Care
+- **Aeration Interval (days)** - Days between aeration
+- **Last Aeration** - Date of last aeration
+- **Next Aeration** - Auto-calculated ✨
+
+### Notes
+- **Care Instructions** - General care tips
+- **Special Notes** - Special requirements
+- **Notes** - Free-form notes
+
+## 🎯 How It Works
+
+```
+┌─────────────────┐         ┌──────────────────┐         ┌─────────────────┐
+│  Home Assistant │◄────────┤   Notion API     ├────────►│     Notion      │
+│   Integration   │  Sync   │   (REST)         │  Create │    Database     │
+└─────────────────┘         └──────────────────┘         └─────────────────┘
+        │                                                          │
+        │                                                          │
+        ▼                                                          ▼
+  5 Sensors Created                                     Auto-create DB
+  4 Services Ready                                      Add Properties
+  Blueprints Available                                  Formula Fields
+```
 
 ## 🐛 Troubleshooting
 
-### Sensor shows "unavailable"
+### Integration doesn't appear
 
 **Solution:**
-1. Check `secrets.yaml` - Ensure token and database ID are correct
-2. Verify the Notion integration is connected to the database
-3. Check Home Assistant logs: **Settings** → **System** → **Logs**
-
-### No notifications received
-
-**Solution:**
-1. Verify a notification service is configured
-2. Check automation conditions (time, count > 0)
-3. Test notification service manually in **Developer Tools** → **Services**
-
-### Template errors in logs
-
-**Solution:**
-1. Ensure Notion database property names match exactly (case-sensitive!)
-2. Verify formula fields are properly configured in Notion
-3. Wait for database to fully sync (can take a few minutes)
+1. Verify files are in `custom_components/notion_garden_care/`
+2. Restart Home Assistant
+3. Check logs: **Settings** → **System** → **Logs**
 
 ### Database not created
 
 **Solution:**
 1. Ensure the parent page exists in Notion
-2. Verify the integration is connected to the parent page
-3. Check Python script output for errors
+2. Verify the integration is connected to the page:
+   - Open page in Notion → **"..."** → **Connections**
+   - "Home Assistant Garden" should be listed
+3. Try again with a fresh page
+
+### Sensors show "Unavailable"
+
+**Solution:**
+1. Check if integration is connected in Notion (see above)
+2. Verify token is correct
+3. Call `notion_garden_care.refresh_database` service
+4. Check Home Assistant logs
+
+## 📝 Example Use Cases
+
+### Morning Routine Automation
+
+```yaml
+automation:
+  - alias: "Morning Garden Report"
+    trigger:
+      - platform: time
+        at: "07:00:00"
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "Good Morning! Garden Update"
+          message: >
+            🌱 {{ states('sensor.active_plants_count') }} plants total
+            💧 {{ states('sensor.plants_to_water') }} need water
+            🌿 {{ states('sensor.plants_to_fertilize') }} need fertilizer
+```
+
+### Mark as Done Button
+
+```yaml
+# Create a button to mark plant as watered
+type: button
+name: Water Tomatoes
+tap_action:
+  action: call-service
+  service: notion_garden_care.mark_as_watered
+  service_data:
+    plant_name: Tomatoes
+icon: mdi:watering-can
+```
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome!
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+2. Create feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Open Pull Request
 
 ## 📄 License
 
@@ -301,10 +289,24 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 💬 Support
 
-- **Issues:** [GitHub Issues](https://github.com/yourusername/notion-garden-care/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/yourusername/notion-garden-care/discussions)
-- **Home Assistant Community:** [Forum Thread](https://community.home-assistant.io/)
+- **Issues:** [GitHub Issues](https://github.com/pfalzcraft/notion-garden-care/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/pfalzcraft/notion-garden-care/discussions)
+- **Installation Guide:** [INSTALLATION.md](INSTALLATION.md)
+
+## 📸 Screenshots
+
+*Coming soon - Add your screenshots!*
+
+---
+
+## Advanced Usage (For Developers)
+
+If you want to use the Python scripts directly without Home Assistant:
+
+See [docs/standalone_setup.md](docs/standalone_setup.md) for manual database creation.
 
 ---
 
 **Made with 🌱 for gardeners who love automation**
+
+**No Python knowledge required • No YAML editing needed • Just works ✨**
