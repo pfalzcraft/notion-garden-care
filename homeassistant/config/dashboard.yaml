@@ -1,0 +1,157 @@
+# ============================================================
+# Notion Garden Care Dashboard for Home Assistant
+# ============================================================
+#
+# Copy this configuration to your Lovelace dashboard
+# or create a new dashboard and paste this YAML
+# ============================================================
+
+title: Garden Care
+views:
+  - title: Overview
+    path: garden-overview
+    icon: mdi:flower
+    cards:
+      # Summary Card
+      - type: vertical-stack
+        cards:
+          - type: markdown
+            content: |
+              # 🌱 Garden Care Overview
+              Manage your plants with Notion and Home Assistant
+
+          # Statistics Grid
+          - type: glance
+            title: Garden Statistics
+            entities:
+              - entity: sensor.active_plants_count
+                name: Active Plants
+                icon: mdi:flower
+              - entity: sensor.plants_to_water
+                name: Need Water
+                icon: mdi:watering-can
+              - entity: sensor.plants_to_fertilize
+                name: Need Fertilizer
+                icon: mdi:spray-bottle
+              - entity: sensor.plants_to_prune
+                name: Need Pruning
+                icon: mdi:content-cut
+
+      # Tasks Card
+      - type: vertical-stack
+        title: 🚿 Watering Tasks
+        cards:
+          - type: entity
+            entity: sensor.plants_to_water
+            name: Plants to Water Today
+            icon: mdi:watering-can
+          - type: conditional
+            conditions:
+              - entity: sensor.plants_to_water
+                state_not: "0"
+            card:
+              type: markdown
+              content: >
+                {% set plants = state_attr('sensor.plants_to_water', 'plants') %}
+                {% if plants %}
+                ### Plants that need watering:
+                {% for plant in plants %}
+                - {{ plant }}
+                {% endfor %}
+                {% endif %}
+
+      - type: vertical-stack
+        title: 🌿 Fertilizing Tasks
+        cards:
+          - type: entity
+            entity: sensor.plants_to_fertilize
+            name: Plants to Fertilize Today
+            icon: mdi:spray-bottle
+          - type: conditional
+            conditions:
+              - entity: sensor.plants_to_fertilize
+                state_not: "0"
+            card:
+              type: markdown
+              content: >
+                {% set plants = state_attr('sensor.plants_to_fertilize', 'plants') %}
+                {% if plants %}
+                ### Plants that need fertilizing:
+                {% for plant in plants %}
+                - {{ plant }}
+                {% endfor %}
+                {% endif %}
+
+      - type: vertical-stack
+        title: ✂️ Pruning Tasks (This Month)
+        cards:
+          - type: entity
+            entity: sensor.plants_to_prune
+            name: Plants to Prune
+            icon: mdi:content-cut
+          - type: conditional
+            conditions:
+              - entity: sensor.plants_to_prune
+                state_not: "0"
+            card:
+              type: markdown
+              content: >
+                {% set plants = state_attr('sensor.plants_to_prune', 'plants') %}
+                {% if plants %}
+                ### Plants to prune this month:
+                {% for plant in plants %}
+                - {{ plant }}
+                {% endfor %}
+
+                **Check your Notion database for detailed pruning instructions!**
+                {% endif %}
+
+      # Quick Actions (Optional - requires button-card custom component)
+      # Uncomment if you have button-card installed via HACS
+      #
+      # - type: horizontal-stack
+      #   title: Quick Actions
+      #   cards:
+      #     - type: custom:button-card
+      #       name: Open Notion
+      #       icon: mdi:notebook
+      #       tap_action:
+      #         action: url
+      #         url_path: https://notion.so
+      #       styles:
+      #         card:
+      #           - height: 100px
+      #
+      #     - type: custom:button-card
+      #       name: Refresh Data
+      #       icon: mdi:refresh
+      #       tap_action:
+      #         action: call-service
+      #         service: homeassistant.update_entity
+      #         service_data:
+      #           entity_id: sensor.notion_garden_care_database
+      #       styles:
+      #         card:
+      #           - height: 100px
+
+      # Database Info Card
+      - type: entities
+        title: 📊 Database Status
+        entities:
+          - entity: sensor.notion_garden_care_database
+            name: Total Plants in Database
+            icon: mdi:database
+        footer:
+          type: markdown
+          content: >
+            Last updated: {{ as_timestamp(states.sensor.notion_garden_care_database.last_updated) | timestamp_custom('%d.%m.%Y %H:%M') }}
+
+      # Link to Notion
+      - type: markdown
+        content: |
+          ---
+          ### 📎 Quick Links
+          [Open Notion Database](https://notion.so) | [GitHub](https://github.com) | [Documentation](https://github.com)
+
+          ---
+          💡 **Tip:** Add plants directly in Notion and they will appear here automatically!

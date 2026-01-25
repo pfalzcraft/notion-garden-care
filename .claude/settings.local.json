@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(python setup_notion_database.py:*)",
+      "Bash(python create_database_en.py:*)"
+    ]
+  }
+}

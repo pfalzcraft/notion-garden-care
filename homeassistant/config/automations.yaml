@@ -1,0 +1,154 @@
+# ============================================================
+# Garden Care Automations for Home Assistant
+# ============================================================
+#
+# These automations send notifications based on data
+# from the Notion Garden Care database
+# ============================================================
+
+# ============================================================
+# DAILY NOTIFICATIONS
+# ============================================================
+
+# Notification: Water plants
+- id: notify_water_plants
+  alias: "Garden Care: Water Plants"
+  description: "Daily notification for plants that need watering"
+  trigger:
+    - platform: time
+      at: "07:00:00"  # 7 AM
+  condition:
+    - condition: numeric_state
+      entity_id: sensor.plants_to_water
+      above: 0
+  action:
+    - service: notify.notify  # Change to your notification service
+      data:
+        title: "🌱 Garden Care: Watering"
+        message: >
+          {{ state_attr('sensor.plants_to_water', 'plants') | length }} plant(s) need watering:
+          {{ state_attr('sensor.plants_to_water', 'plants') | join(', ') }}
+        data:
+          priority: high
+          tag: watering
+
+# Notification: Fertilize plants
+- id: notify_fertilize_plants
+  alias: "Garden Care: Fertilize Plants"
+  description: "Daily notification for plants that need fertilizing"
+  trigger:
+    - platform: time
+      at: "08:00:00"  # 8 AM
+  condition:
+    - condition: numeric_state
+      entity_id: sensor.plants_to_fertilize
+      above: 0
+  action:
+    - service: notify.notify
+      data:
+        title: "🌿 Garden Care: Fertilizing"
+        message: >
+          {{ state_attr('sensor.plants_to_fertilize', 'plants') | length }} plant(s) need fertilizing:
+          {{ state_attr('sensor.plants_to_fertilize', 'plants') | join(', ') }}
+        data:
+          priority: normal
+          tag: fertilizing
+
+# ============================================================
+# MONTHLY NOTIFICATIONS
+# ============================================================
+
+# Notification: Prune plants (on 1st of month)
+- id: notify_prune_plants
+  alias: "Garden Care: Prune Plants (Monthly)"
+  description: "Monthly reminder for pruning"
+  trigger:
+    - platform: time
+      at: "09:00:00"
+  condition:
+    - condition: template
+      value_template: "{{ now().day == 1 }}"  # Only on 1st of month
+    - condition: numeric_state
+      entity_id: sensor.plants_to_prune
+      above: 0
+  action:
+    - service: notify.notify
+      data:
+        title: "✂️ Garden Care: Pruning in {{ now().strftime('%B') }}"
+        message: >
+          {{ state_attr('sensor.plants_to_prune', 'plants') | length }} plant(s) should be pruned this month:
+          {{ state_attr('sensor.plants_to_prune', 'plants') | join(', ') }}
+
+          Check the Notion database for detailed pruning instructions!
+        data:
+          priority: normal
+          tag: pruning
+
+# ============================================================
+# PERSISTENT NOTIFICATIONS (Alternative to mobile notifications)
+# ============================================================
+
+# Persistent Notification: Watering overdue
+- id: persistent_notify_water_overdue
+  alias: "Garden Care: Persistent Notification - Watering"
+  description: "Creates a persistent notification in Home Assistant"
+  trigger:
+    - platform: state
+      entity_id: sensor.plants_to_water
+    - platform: time
+      at: "07:00:00"
+  condition:
+    - condition: numeric_state
+      entity_id: sensor.plants_to_water
+      above: 0
+  action:
+    - service: persistent_notification.create
+      data:
+        title: "🌱 Water Plants"
+        message: >
+          {{ state_attr('sensor.plants_to_water', 'plants') | join(', ') }}
+        notification_id: watering_reminder
+
+# Persistent Notification: Fertilizing overdue
+- id: persistent_notify_fertilize_overdue
+  alias: "Garden Care: Persistent Notification - Fertilizing"
+  description: "Creates a persistent notification in Home Assistant"
+  trigger:
+    - platform: state
+      entity_id: sensor.plants_to_fertilize
+    - platform: time
+      at: "08:00:00"
+  condition:
+    - condition: numeric_state
+      entity_id: sensor.plants_to_fertilize
+      above: 0
+  action:
+    - service: persistent_notification.create
+      data:
+        title: "🌿 Fertilize Plants"
+        message: >
+          {{ state_attr('sensor.plants_to_fertilize', 'plants') | join(', ') }}
+        notification_id: fertilizing_reminder
+
+# ============================================================
+# AUTOMATIC UPDATES IN NOTION (Optional)
+# ============================================================
+# These automations update Notion when you mark an action
+# as completed in Home Assistant
+
+# Example: Update "Last Watered" when button pressed
+# (Requires an Input Button Helper for each plant)
+
+# - id: update_notion_watered
+#   alias: "Notion: Plant Watered"
+#   description: "Updates Notion when plant was watered"
+#   trigger:
+#     - platform: event
+#       event_type: call_service
+#       event_data:
+#         domain: rest_command
+#         service: notion_update_last_watered
+#   action:
+#     - service: homeassistant.update_entity
+#       target:
+#         entity_id: sensor.notion_garden_care_database

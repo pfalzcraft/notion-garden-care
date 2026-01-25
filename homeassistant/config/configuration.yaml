@@ -1,0 +1,267 @@
+# ============================================================
+# Notion Garden Care Integration for Home Assistant
+# ============================================================
+#
+# This configuration integrates your Notion Garden Care database
+# with Home Assistant via the RESTful API
+#
+# IMPORTANT: Add your credentials in secrets.yaml!
+# ============================================================
+
+# ============================================================
+# 1. REST COMMAND - For write access to Notion
+# ============================================================
+
+rest_command:
+  # Update "Last Watered" date
+  notion_update_last_watered:
+    url: "https://api.notion.com/v1/pages/{{ page_id }}"
+    method: PATCH
+    headers:
+      Authorization: !secret notion_auth_header
+      Notion-Version: "2022-06-28"
+      Content-Type: "application/json"
+    payload: >
+      {
+        "properties": {
+          "Last Watered": {
+            "date": {
+              "start": "{{ now().strftime('%Y-%m-%d') }}"
+            }
+          }
+        }
+      }
+
+  # Update "Last Fertilized" date
+  notion_update_last_fertilized:
+    url: "https://api.notion.com/v1/pages/{{ page_id }}"
+    method: PATCH
+    headers:
+      Authorization: !secret notion_auth_header
+      Notion-Version: "2022-06-28"
+      Content-Type: "application/json"
+    payload: >
+      {
+        "properties": {
+          "Last Fertilized": {
+            "date": {
+              "start": "{{ now().strftime('%Y-%m-%d') }}"
+            }
+          }
+        }
+      }
+
+  # Update "Last Pruned" date
+  notion_update_last_pruned:
+    url: "https://api.notion.com/v1/pages/{{ page_id }}"
+    method: PATCH
+    headers:
+      Authorization: !secret notion_auth_header
+      Notion-Version: "2022-06-28"
+      Content-Type: "application/json"
+    payload: >
+      {
+        "properties": {
+          "Last Pruned": {
+            "date": {
+              "start": "{{ now().strftime('%Y-%m-%d') }}"
+            }
+          }
+        }
+      }
+
+# ============================================================
+# 2. REST SENSOR - Reads data from Notion
+# ============================================================
+
+sensor:
+  - platform: rest
+    name: Notion Garden Care Database
+    resource: !secret notion_database_query_url
+    method: POST
+    headers:
+      Authorization: !secret notion_auth_header
+      Notion-Version: "2022-06-28"
+      Content-Type: "application/json"
+    payload: '{}'
+    value_template: "{{ value_json.results | length }}"
+    json_attributes_path: "$.results"
+    json_attributes:
+      - results
+    scan_interval: 3600  # Update every hour
+
+# ============================================================
+# 3. TEMPLATE SENSORS - Process Notion data
+# ============================================================
+
+template:
+  - sensor:
+      # Number of plants that need watering
+      - name: "Plants to Water"
+        unique_id: plants_to_water
+        state: >
+          {% set ns = namespace(count=0) %}
+          {% set plants = state_attr('sensor.notion_garden_care_database', 'results') %}
+          {% if plants %}
+            {% for plant in plants %}
+              {% if plant.properties['Next Water'] and plant.properties['Next Water'].formula %}
+                {% set next_water = plant.properties['Next Water'].formula.date %}
+                {% if next_water and next_water <= now().strftime('%Y-%m-%d') %}
+                  {% set ns.count = ns.count + 1 %}
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+          {{ ns.count }}
+        attributes:
+          plants: >
+            {% set ns = namespace(list=[]) %}
+            {% set plants = state_attr('sensor.notion_garden_care_database', 'results') %}
+            {% if plants %}
+              {% for plant in plants %}
+                {% if plant.properties['Next Water'] and plant.properties['Next Water'].formula %}
+                  {% set next_water = plant.properties['Next Water'].formula.date %}
+                  {% if next_water and next_water <= now().strftime('%Y-%m-%d') %}
+                    {% if plant.properties.Name.title and plant.properties.Name.title | length > 0 %}
+                      {% set ns.list = ns.list + [plant.properties.Name.title[0].plain_text] %}
+                    {% endif %}
+                  {% endif %}
+                {% endif %}
+              {% endfor %}
+            {% endif %}
+            {{ ns.list }}
+          plant_details: >
+            {% set ns = namespace(list=[]) %}
+            {% set plants = state_attr('sensor.notion_garden_care_database', 'results') %}
+            {% if plants %}
+              {% for plant in plants %}
+                {% if plant.properties['Next Water'] and plant.properties['Next Water'].formula %}
+                  {% set next_water = plant.properties['Next Water'].formula.date %}
+                  {% if next_water and next_water <= now().strftime('%Y-%m-%d') %}
+                    {% if plant.properties.Name.title and plant.properties.Name.title | length > 0 %}
+                      {% set plant_name = plant.properties.Name.title[0].plain_text %}
+                      {% set ns.list = ns.list + [{'name': plant_name, 'page_id': plant.id, 'due_date': next_water}] %}
+                    {% endif %}
+                  {% endif %}
+                {% endif %}
+              {% endfor %}
+            {% endif %}
+            {{ ns.list }}
+
+      # Number of plants that need fertilizing
+      - name: "Plants to Fertilize"
+        unique_id: plants_to_fertilize
+        state: >
+          {% set ns = namespace(count=0) %}
+          {% set plants = state_attr('sensor.notion_garden_care_database', 'results') %}
+          {% if plants %}
+            {% for plant in plants %}
+              {% if plant.properties['Next Fertilize'] and plant.properties['Next Fertilize'].formula %}
+                {% set next_fertilize = plant.properties['Next Fertilize'].formula.date %}
+                {% if next_fertilize and next_fertilize <= now().strftime('%Y-%m-%d') %}
+                  {% set ns.count = ns.count + 1 %}
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+          {{ ns.count }}
+        attributes:
+          plants: >
+            {% set ns = namespace(list=[]) %}
+            {% set plants = state_attr('sensor.notion_garden_care_database', 'results') %}
+            {% if plants %}
+              {% for plant in plants %}
+                {% if plant.properties['Next Fertilize'] and plant.properties['Next Fertilize'].formula %}
+                  {% set next_fertilize = plant.properties['Next Fertilize'].formula.date %}
+                  {% if next_fertilize and next_fertilize <= now().strftime('%Y-%m-%d') %}
+                    {% if plant.properties.Name.title and plant.properties.Name.title | length > 0 %}
+                      {% set ns.list = ns.list + [plant.properties.Name.title[0].plain_text] %}
+                    {% endif %}
+                  {% endif %}
+                {% endif %}
+              {% endfor %}
+            {% endif %}
+            {{ ns.list }}
+          plant_details: >
+            {% set ns = namespace(list=[]) %}
+            {% set plants = state_attr('sensor.notion_garden_care_database', 'results') %}
+            {% if plants %}
+              {% for plant in plants %}
+                {% if plant.properties['Next Fertilize'] and plant.properties['Next Fertilize'].formula %}
+                  {% set next_fertilize = plant.properties['Next Fertilize'].formula.date %}
+                  {% if next_fertilize and next_fertilize <= now().strftime('%Y-%m-%d') %}
+                    {% if plant.properties.Name.title and plant.properties.Name.title | length > 0 %}
+                      {% set plant_name = plant.properties.Name.title[0].plain_text %}
+                      {% set ns.list = ns.list + [{'name': plant_name, 'page_id': plant.id, 'due_date': next_fertilize}] %}
+                    {% endif %}
+                  {% endif %}
+                {% endif %}
+              {% endfor %}
+            {% endif %}
+            {{ ns.list }}
+
+      # Number of plants that need pruning (current month)
+      - name: "Plants to Prune"
+        unique_id: plants_to_prune
+        state: >
+          {% set ns = namespace(count=0) %}
+          {% set plants = state_attr('sensor.notion_garden_care_database', 'results') %}
+          {% set month_map = {
+            1: 'January', 2: 'February', 3: 'March', 4: 'April',
+            5: 'May', 6: 'June', 7: 'July', 8: 'August',
+            9: 'September', 10: 'October', 11: 'November', 12: 'December'
+          } %}
+          {% set current_month = month_map[now().month] %}
+          {% if plants %}
+            {% for plant in plants %}
+              {% if plant.properties['Prune Months'] and plant.properties['Prune Months'].multi_select %}
+                {% set prune_months = plant.properties['Prune Months'].multi_select %}
+                {% for month in prune_months %}
+                  {% if month.name == current_month %}
+                    {% set ns.count = ns.count + 1 %}
+                  {% endif %}
+                {% endfor %}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+          {{ ns.count }}
+        attributes:
+          plants: >
+            {% set ns = namespace(list=[]) %}
+            {% set plants = state_attr('sensor.notion_garden_care_database', 'results') %}
+            {% set month_map = {
+              1: 'January', 2: 'February', 3: 'March', 4: 'April',
+              5: 'May', 6: 'June', 7: 'July', 8: 'August',
+              9: 'September', 10: 'October', 11: 'November', 12: 'December'
+            } %}
+            {% set current_month = month_map[now().month] %}
+            {% if plants %}
+              {% for plant in plants %}
+                {% if plant.properties['Prune Months'] and plant.properties['Prune Months'].multi_select %}
+                  {% set prune_months = plant.properties['Prune Months'].multi_select %}
+                  {% for month in prune_months %}
+                    {% if month.name == current_month %}
+                      {% if plant.properties.Name.title and plant.properties.Name.title | length > 0 %}
+                        {% set ns.list = ns.list + [plant.properties.Name.title[0].plain_text] %}
+                      {% endif %}
+                    {% endif %}
+                  {% endfor %}
+                {% endif %}
+              {% endfor %}
+            {% endif %}
+            {{ ns.list }}
+
+      # Total number of active plants
+      - name: "Active Plants Count"
+        unique_id: active_plants_count
+        state: >
+          {% set ns = namespace(count=0) %}
+          {% set plants = state_attr('sensor.notion_garden_care_database', 'results') %}
+          {% if plants %}
+            {% for plant in plants %}
+              {% if plant.properties.Active and plant.properties.Active.checkbox %}
+                {% set ns.count = ns.count + 1 %}
+              {% endif %}
+            {% endfor %}
+          {% endif %}
+          {{ ns.count }}
