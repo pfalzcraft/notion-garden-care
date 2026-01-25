@@ -1,3 +1,5 @@
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/pfalzcraft)
+
 # 🌱 Notion Garden Care for Home Assistant
 
 Manage your garden with Notion and automate reminders with Home Assistant. Track watering, fertilizing, and pruning schedules for all your plants in one place.
@@ -357,3 +359,11 @@ See [docs/standalone_setup.md](docs/standalone_setup.md) for manual database cre
 **Made with 🌱 for gardeners who love automation**
 
 **No Python knowledge required • No YAML editing needed • Just works ✨**
+
+---
+
+<p align="center">
+  <a href="https://buymeacoffee.com/pfalzcraft">
+    <img src="https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support%20This%20Project-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black" alt="Buy Me A Coffee">
+  </a>
+</p>
