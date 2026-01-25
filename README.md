@@ -100,6 +100,8 @@ After setup, you'll have these sensors:
 
 #### 📋 Detailed Sensor Logic
 
+> **📚 For complete documentation with examples and troubleshooting, see [docs/SENSORS.md](docs/SENSORS.md)**
+
 Understanding when plants appear in each sensor:
 
 **🚰 Plants to Water** (`sensor.plants_to_water`)
