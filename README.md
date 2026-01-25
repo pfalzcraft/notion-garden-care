@@ -5,6 +5,7 @@ Manage your garden with Notion and automate reminders with Home Assistant. Track
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-Integration-41BDF5?logo=homeassistant)
 ![Notion](https://img.shields.io/badge/Notion-Database-000000?logo=notion)
 ![License](https://img.shields.io/badge/License-MIT-green)
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support-FFDD00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/pfalzcraft)
 
 ## ✨ Features
 
@@ -330,6 +331,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Issues:** [GitHub Issues](https://github.com/pfalzcraft/notion-garden-care/issues)
 - **Discussions:** [GitHub Discussions](https://github.com/pfalzcraft/notion-garden-care/discussions)
 - **Installation Guide:** [INSTALLATION.md](INSTALLATION.md)
+
+## ☕ Buy Me a Coffee
+
+If you find this integration helpful, consider supporting the development:
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/pfalzcraft)
+
+Your support helps keep this project maintained and improved!
 
 ## 📸 Screenshots
 
