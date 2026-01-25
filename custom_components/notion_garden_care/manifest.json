@@ -1,0 +1,15 @@
+{
+  "domain": "notion_garden_care",
+  "name": "Notion Garden Care",
+  "codeowners": ["@yourusername"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/yourusername/notion-garden-care",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/yourusername/notion-garden-care/issues",
+  "requirements": [
+    "notion-client>=2.2.1"
+  ],
+  "version": "1.0.0"
+}

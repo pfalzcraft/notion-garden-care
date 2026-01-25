@@ -1,0 +1,45 @@
+blueprint:
+  name: Garden Care - Watering Reminder
+  description: Send a notification when plants need watering
+  domain: automation
+  input:
+    notification_time:
+      name: Notification Time
+      description: When should the notification be sent?
+      default: "07:00:00"
+      selector:
+        time:
+    notification_service:
+      name: Notification Service
+      description: Which notification service to use?
+      default: notify.notify
+      selector:
+        text:
+    notification_title:
+      name: Notification Title
+      description: Title of the notification
+      default: "🌱 Garden Care: Watering"
+      selector:
+        text:
+
+trigger:
+  - platform: time
+    at: !input notification_time
+
+condition:
+  - condition: numeric_state
+    entity_id: sensor.plants_to_water
+    above: 0
+
+action:
+  - service: !input notification_service
+    data:
+      title: !input notification_title
+      message: >
+        {{ state_attr('sensor.plants_to_water', 'plants') | length }} plant(s) need watering:
+        {{ state_attr('sensor.plants_to_water', 'plants') | join(', ') }}
+      data:
+        priority: high
+        tag: watering
+
+mode: single

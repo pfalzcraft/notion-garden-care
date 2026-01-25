@@ -1,0 +1,37 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Notion",
+        "description": "Enter your Notion API token. [Create an integration here]({setup_url})",
+        "data": {
+          "notion_token": "Notion Integration Token"
+        }
+      },
+      "parent_page": {
+        "title": "Setup Garden Care Database",
+        "description": "Create a page in Notion, connect your integration to it, and paste the page URL or ID here. The integration will create the Garden Care database automatically.",
+        "data": {
+          "parent_page_id": "Parent Page URL or ID",
+          "create_database": "Create Garden Care database automatically",
+          "add_example_plants": "Add example plants (Tomatoes, Rose Bush, Apple Tree, Basil)"
+        }
+      },
+      "database": {
+        "title": "Connect Existing Database",
+        "description": "If you already have a Garden Care database, paste its URL or ID here.",
+        "data": {
+          "database_id": "Database URL or ID"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to Notion. Please check your token.",
+      "invalid_auth": "Invalid authentication. Please check your Notion token.",
+      "unknown": "Unexpected error occurred"
+    },
+    "abort": {
+      "already_configured": "This Notion integration is already configured"
+    }
+  }
+}

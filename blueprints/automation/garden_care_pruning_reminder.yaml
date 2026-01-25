@@ -1,0 +1,58 @@
+blueprint:
+  name: Garden Care - Pruning Reminder (Monthly)
+  description: Send a monthly notification when plants need pruning
+  domain: automation
+  input:
+    notification_time:
+      name: Notification Time
+      description: When should the notification be sent?
+      default: "09:00:00"
+      selector:
+        time:
+    notification_day:
+      name: Day of Month
+      description: Which day of the month to send the notification?
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 28
+          mode: slider
+    notification_service:
+      name: Notification Service
+      description: Which notification service to use?
+      default: notify.notify
+      selector:
+        text:
+    notification_title:
+      name: Notification Title Template
+      description: Title of the notification (supports templates)
+      default: "✂️ Garden Care: Pruning in {{ now().strftime('%B') }}"
+      selector:
+        text:
+
+trigger:
+  - platform: time
+    at: !input notification_time
+
+condition:
+  - condition: template
+    value_template: "{{ now().day == notification_day }}"
+  - condition: numeric_state
+    entity_id: sensor.plants_to_prune
+    above: 0
+
+action:
+  - service: !input notification_service
+    data:
+      title: !input notification_title
+      message: >
+        {{ state_attr('sensor.plants_to_prune', 'plants') | length }} plant(s) should be pruned this month:
+        {{ state_attr('sensor.plants_to_prune', 'plants') | join(', ') }}
+
+        Check your Notion database for detailed pruning instructions!
+      data:
+        priority: normal
+        tag: pruning
+
+mode: single

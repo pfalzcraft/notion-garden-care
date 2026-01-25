@@ -1,0 +1,56 @@
+# Services for Notion Garden Care integration
+
+mark_as_watered:
+  name: Mark Plant as Watered
+  description: Updates the "Last Watered" date in Notion for a plant
+  fields:
+    page_id:
+      name: Page ID
+      description: The Notion page ID of the plant (optional if plant_name is provided)
+      example: "1234567890abcdef"
+      selector:
+        text:
+    plant_name:
+      name: Plant Name
+      description: The name of the plant (optional if page_id is provided)
+      example: "Tomatoes"
+      selector:
+        text:
+
+mark_as_fertilized:
+  name: Mark Plant as Fertilized
+  description: Updates the "Last Fertilized" date in Notion for a plant
+  fields:
+    page_id:
+      name: Page ID
+      description: The Notion page ID of the plant (optional if plant_name is provided)
+      example: "1234567890abcdef"
+      selector:
+        text:
+    plant_name:
+      name: Plant Name
+      description: The name of the plant (optional if page_id is provided)
+      example: "Rose Bush"
+      selector:
+        text:
+
+mark_as_pruned:
+  name: Mark Plant as Pruned
+  description: Updates the "Last Pruned" date in Notion for a plant
+  fields:
+    page_id:
+      name: Page ID
+      description: The Notion page ID of the plant (optional if plant_name is provided)
+      example: "1234567890abcdef"
+      selector:
+        text:
+    plant_name:
+      name: Plant Name
+      description: The name of the plant (optional if page_id is provided)
+      example: "Apple Tree"
+      selector:
+        text:
+
+refresh_database:
+  name: Refresh Database
+  description: Manually refresh the Notion Garden Care database data
