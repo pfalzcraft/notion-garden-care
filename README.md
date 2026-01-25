@@ -78,6 +78,7 @@ Restart Home Assistant.
    - **Screen 2:** Paste your page URL
    - ✅ Keep "Create database automatically" checked
    - ✅ Keep "Add example plants" checked
+   - ✅ Keep "Create individual sensors for each plant" checked (or uncheck for aggregate sensors only)
    - Click **Submit**
 
 **That's it!** 🎉
@@ -86,7 +87,8 @@ The integration will:
 - ✅ Create the "Garden Care" database in Notion
 - ✅ Set up all properties and formulas
 - ✅ Add 5 example plants (Tomatoes, Rose, Apple Tree, Basil, Lawn)
-- ✅ Create 5 sensors in Home Assistant
+- ✅ Create 5 aggregate sensors in Home Assistant
+- ✅ Create individual sensors for each plant (if enabled)
 - ✅ Register 4 services for plant updates
 
 ## 📊 What You Get
@@ -95,11 +97,23 @@ The integration will:
 
 After setup, you'll have these sensors:
 
+**Aggregate Sensors (always created):**
 - `sensor.notion_garden_care_database` - All plants from Notion
 - `sensor.plants_to_water` - Plants needing water today
 - `sensor.plants_to_fertilize` - Plants needing fertilizer today
 - `sensor.plants_to_prune` - Plants to prune this month
 - `sensor.active_plants_count` - Total active plants
+
+**Individual Plant Sensors (optional, enabled by default):**
+- `sensor.garden_care_tomatoes` - Individual sensor for Tomatoes
+- `sensor.garden_care_rose_bush` - Individual sensor for Rose Bush
+- `sensor.garden_care_apple_tree` - Individual sensor for Apple Tree
+- ... one sensor per plant in your database!
+
+Each plant sensor shows:
+- **State:** Status text ("OK", "Needs Water", "Needs Fertilizer", "Needs Pruning")
+- **Attributes:** All plant properties from Notion (type, location, watering schedule, etc.)
+- **Icon:** Changes based on plant type (tree, vegetable, herb, etc.)
 
 #### 📋 Detailed Sensor Logic
 

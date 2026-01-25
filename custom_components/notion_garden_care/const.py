@@ -8,6 +8,7 @@ CONF_PARENT_PAGE_ID = "parent_page_id"
 CONF_DATABASE_ID = "database_id"
 CONF_CREATE_DATABASE = "create_database"
 CONF_ADD_EXAMPLES = "add_example_plants"
+CONF_CREATE_PLANT_SENSORS = "create_plant_sensors"
 
 # Notion API
 NOTION_API_VERSION = "2022-06-28"

@@ -14,7 +14,8 @@
         "data": {
           "parent_page_id": "Parent Page URL or ID",
           "create_database": "Create Garden Care database automatically",
-          "add_example_plants": "Add example plants (Tomatoes, Rose Bush, Apple Tree, Basil)"
+          "add_example_plants": "Add example plants (Tomatoes, Rose Bush, Apple Tree, Basil)",
+          "create_plant_sensors": "Create individual sensors for each plant"
         }
       },
       "database": {

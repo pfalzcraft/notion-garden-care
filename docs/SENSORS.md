@@ -4,7 +4,116 @@ Complete guide to understanding how Notion Garden Care sensors work.
 
 ## Overview
 
-The integration creates 5 sensors that automatically update every hour. Each sensor monitors different aspects of your garden care routine.
+The integration creates two types of sensors:
+
+1. **Aggregate Sensors (5 sensors)** - Summary sensors that track all plants
+2. **Individual Plant Sensors (optional)** - One sensor per plant with all details
+
+All sensors automatically update every hour.
+
+### Configuration Option
+
+During setup, you can choose to enable/disable individual plant sensors:
+- **"Create individual sensors for each plant"** - Check to create `sensor.garden_care_<plant_name>` for each plant
+- When disabled, only the 5 aggregate sensors are created
+
+---
+
+## 🌱 Individual Plant Sensors
+
+**Sensor ID:** `sensor.garden_care_<plant_name>` (e.g., `sensor.garden_care_tomatoes`)
+
+### When Enabled
+
+Individual plant sensors are created when you check **"Create individual sensors for each plant"** during integration setup.
+
+### State Values
+
+The sensor state shows the current status of the plant:
+
+| State | Meaning |
+|-------|---------|
+| `OK` | Plant doesn't need any immediate care |
+| `Needs Water` | Next Water date is today or in the past |
+| `Needs Fertilizer` | Next Fertilize date is today or in the past |
+| `Needs Pruning` | Current month is in Prune Months list |
+| `Needs Water, Needs Fertilizer` | Multiple care needs (comma-separated) |
+
+### Attributes
+
+Each plant sensor includes ALL properties from Notion as attributes:
+
+```yaml
+sensor.garden_care_tomatoes:
+  state: "Needs Water"
+  attributes:
+    page_id: "abc123..."
+    plant_name: "Tomatoes"
+    type: "Vegetable"
+    location: "Garden"
+    active: true
+    sun_exposure: "Full Sun"
+    water_interval_days: 2
+    last_watered: "2026-01-23"
+    next_water: "2026-01-25"
+    water_amount: "High"
+    fertilize_interval_days: 14
+    last_fertilized: "2026-01-15"
+    next_fertilize: "2026-01-29"
+    fertilizer_type: "Tomato fertilizer, NPK 5-6-8"
+    prune_months: ["March", "September"]
+    prune_instructions: "Remove suckers regularly..."
+    harvest_months: ["July", "August", "September"]
+    harvest_notes: "Pick when fully colored..."
+    companion_plants: "Basil, Marigolds, Carrots"
+    bee_friendly: true
+    toxicity: "Safe"
+    care_instructions: "Fertilize regularly..."
+    special_notes: "Requires sunny location"
+```
+
+### Dynamic Icons
+
+The icon changes based on plant type:
+
+| Plant Type | Icon |
+|------------|------|
+| Tree | `mdi:tree` |
+| Shrub | `mdi:tree-outline` |
+| Vegetable | `mdi:carrot` |
+| Herb | `mdi:leaf` |
+| Lawn | `mdi:grass` |
+| Plant (default) | `mdi:flower` |
+
+### Use Cases
+
+**Dashboard Cards:**
+```yaml
+type: entity
+entity: sensor.garden_care_tomatoes
+name: Tomatoes
+```
+
+**Automation Example:**
+```yaml
+automation:
+  - alias: "Notify when Tomatoes need water"
+    trigger:
+      - platform: state
+        entity_id: sensor.garden_care_tomatoes
+        to: "Needs Water"
+    action:
+      - service: notify.mobile_app
+        data:
+          title: "Garden Alert"
+          message: "Your tomatoes need watering!"
+```
+
+---
+
+## Aggregate Sensors
+
+The following 5 sensors are always created:
 
 ---
 

@@ -19,7 +19,7 @@ from homeassistant.helpers.update_coordinator import (
     UpdateFailed,
 )
 
-from .const import DOMAIN
+from .const import DOMAIN, CONF_CREATE_PLANT_SENSORS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -69,7 +69,7 @@ async def async_setup_entry(
     # Store coordinator for service access
     hass.data[DOMAIN][config_entry.entry_id]["coordinator"] = coordinator
 
-    # Create sensors
+    # Create aggregate sensors (always created)
     sensors = [
         NotionGardenCareDatabaseSensor(coordinator),
         PlantsToWaterSensor(coordinator),
@@ -77,6 +77,15 @@ async def async_setup_entry(
         PlantsToPruneSensor(coordinator),
         ActivePlantsCountSensor(coordinator),
     ]
+
+    # Create individual plant sensors if enabled
+    create_plant_sensors = config_entry.data.get(CONF_CREATE_PLANT_SENSORS, True)
+    if create_plant_sensors and coordinator.data:
+        for plant_data in coordinator.data.get("results", []):
+            plant_sensor = PlantSensor(coordinator, plant_data)
+            if plant_sensor.name:  # Only add if plant has a valid name
+                sensors.append(plant_sensor)
+        _LOGGER.info("Created %d individual plant sensors", len(sensors) - 5)
 
     async_add_entities(sensors)
 
@@ -368,3 +377,192 @@ class ActivePlantsCountSensor(CoordinatorEntity, SensorEntity):
                 continue
 
         return count
+
+
+class PlantSensor(CoordinatorEntity, SensorEntity):
+    """Individual sensor for a specific plant."""
+
+    def __init__(self, coordinator: DataUpdateCoordinator, plant_data: dict) -> None:
+        """Initialize the plant sensor."""
+        super().__init__(coordinator)
+        self._page_id = plant_data.get("id", "")
+        self._plant_name = self._extract_plant_name(plant_data)
+
+        # Create unique ID and name based on plant name
+        if self._plant_name:
+            safe_name = self._plant_name.lower().replace(" ", "_").replace("-", "_")
+            self._attr_unique_id = f"notion_garden_care_plant_{safe_name}"
+            self._attr_name = f"Garden Care {self._plant_name}"
+        else:
+            self._attr_unique_id = f"notion_garden_care_plant_{self._page_id[:8]}"
+            self._attr_name = f"Garden Care Plant {self._page_id[:8]}"
+
+        self._attr_icon = "mdi:flower"
+
+    def _extract_plant_name(self, plant_data: dict) -> str | None:
+        """Extract plant name from Notion page data."""
+        try:
+            name_prop = plant_data.get("properties", {}).get("Name", {})
+            if name_prop.get("title") and len(name_prop["title"]) > 0:
+                return name_prop["title"][0].get("plain_text")
+        except (KeyError, TypeError, IndexError):
+            pass
+        return None
+
+    def _get_current_plant_data(self) -> dict | None:
+        """Get current plant data from coordinator."""
+        if not self.coordinator.data:
+            return None
+
+        for plant in self.coordinator.data.get("results", []):
+            if plant.get("id") == self._page_id:
+                return plant
+        return None
+
+    @property
+    def name(self) -> str | None:
+        """Return the name of the sensor."""
+        return self._attr_name if self._plant_name else None
+
+    @property
+    def native_value(self) -> str:
+        """Return the status of the plant."""
+        plant_data = self._get_current_plant_data()
+        if not plant_data:
+            return "Unknown"
+
+        from datetime import datetime
+        today = datetime.now().strftime("%Y-%m-%d")
+        current_month = datetime.now().strftime("%B")  # Full month name
+
+        statuses = []
+
+        # Check if needs watering
+        try:
+            next_water_prop = plant_data.get("properties", {}).get("Next Water", {})
+            if next_water_prop.get("formula") and next_water_prop["formula"].get("type") == "date":
+                date_obj = next_water_prop["formula"].get("date")
+                if date_obj:
+                    next_water_date = date_obj.get("start") if isinstance(date_obj, dict) else date_obj
+                    if next_water_date and next_water_date <= today:
+                        statuses.append("Needs Water")
+        except (KeyError, TypeError):
+            pass
+
+        # Check if needs fertilizing
+        try:
+            next_fert_prop = plant_data.get("properties", {}).get("Next Fertilize", {})
+            if next_fert_prop.get("formula") and next_fert_prop["formula"].get("type") == "date":
+                date_obj = next_fert_prop["formula"].get("date")
+                if date_obj:
+                    next_fert_date = date_obj.get("start") if isinstance(date_obj, dict) else date_obj
+                    if next_fert_date and next_fert_date <= today:
+                        statuses.append("Needs Fertilizer")
+        except (KeyError, TypeError):
+            pass
+
+        # Check if needs pruning this month
+        try:
+            prune_months_prop = plant_data.get("properties", {}).get("Prune Months", {})
+            if prune_months_prop.get("multi_select"):
+                prune_months = [m["name"] for m in prune_months_prop["multi_select"]]
+                if current_month in prune_months:
+                    statuses.append("Needs Pruning")
+        except (KeyError, TypeError):
+            pass
+
+        if statuses:
+            return ", ".join(statuses)
+        return "OK"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the state attributes with all plant details."""
+        plant_data = self._get_current_plant_data()
+        if not plant_data:
+            return {}
+
+        attributes = {
+            "page_id": self._page_id,
+            "plant_name": self._plant_name,
+        }
+
+        properties = plant_data.get("properties", {})
+
+        # Extract all properties
+        for prop_name, prop_value in properties.items():
+            attr_name = prop_name.lower().replace(" ", "_").replace("(", "").replace(")", "")
+
+            try:
+                prop_type = prop_value.get("type")
+
+                if prop_type == "title":
+                    if prop_value.get("title") and len(prop_value["title"]) > 0:
+                        attributes[attr_name] = prop_value["title"][0].get("plain_text")
+
+                elif prop_type == "rich_text":
+                    if prop_value.get("rich_text") and len(prop_value["rich_text"]) > 0:
+                        attributes[attr_name] = prop_value["rich_text"][0].get("plain_text")
+
+                elif prop_type == "number":
+                    attributes[attr_name] = prop_value.get("number")
+
+                elif prop_type == "select":
+                    if prop_value.get("select"):
+                        attributes[attr_name] = prop_value["select"].get("name")
+
+                elif prop_type == "multi_select":
+                    if prop_value.get("multi_select"):
+                        attributes[attr_name] = [m["name"] for m in prop_value["multi_select"]]
+
+                elif prop_type == "checkbox":
+                    attributes[attr_name] = prop_value.get("checkbox", False)
+
+                elif prop_type == "date":
+                    if prop_value.get("date"):
+                        date_obj = prop_value["date"]
+                        attributes[attr_name] = date_obj.get("start") if isinstance(date_obj, dict) else date_obj
+
+                elif prop_type == "formula":
+                    formula_data = prop_value.get("formula", {})
+                    formula_type = formula_data.get("type")
+                    if formula_type == "date":
+                        date_obj = formula_data.get("date")
+                        if date_obj:
+                            attributes[attr_name] = date_obj.get("start") if isinstance(date_obj, dict) else date_obj
+                    elif formula_type == "string":
+                        attributes[attr_name] = formula_data.get("string")
+                    elif formula_type == "number":
+                        attributes[attr_name] = formula_data.get("number")
+                    elif formula_type == "boolean":
+                        attributes[attr_name] = formula_data.get("boolean")
+
+            except (KeyError, TypeError, IndexError):
+                continue
+
+        return attributes
+
+    @property
+    def icon(self) -> str:
+        """Return the icon based on plant type."""
+        plant_data = self._get_current_plant_data()
+        if not plant_data:
+            return "mdi:flower"
+
+        try:
+            type_prop = plant_data.get("properties", {}).get("Type", {})
+            if type_prop.get("select"):
+                plant_type = type_prop["select"].get("name", "").lower()
+                icon_map = {
+                    "tree": "mdi:tree",
+                    "shrub": "mdi:tree-outline",
+                    "vegetable": "mdi:carrot",
+                    "herb": "mdi:leaf",
+                    "lawn": "mdi:grass",
+                    "plant": "mdi:flower",
+                }
+                return icon_map.get(plant_type, "mdi:flower")
+        except (KeyError, TypeError):
+            pass
+
+        return "mdi:flower"

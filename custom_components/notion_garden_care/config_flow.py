@@ -21,6 +21,7 @@ from .const import (
     CONF_DATABASE_ID,
     CONF_CREATE_DATABASE,
     CONF_ADD_EXAMPLES,
+    CONF_CREATE_PLANT_SENSORS,
     NOTION_API_VERSION,
     PLANT_TYPES,
     LOCATIONS,
@@ -44,6 +45,7 @@ STEP_PARENT_PAGE_SCHEMA = vol.Schema(
         vol.Required(CONF_PARENT_PAGE_ID): str,
         vol.Optional(CONF_CREATE_DATABASE, default=True): bool,
         vol.Optional(CONF_ADD_EXAMPLES, default=True): bool,
+        vol.Optional(CONF_CREATE_PLANT_SENSORS, default=True): bool,
     }
 )
 
@@ -434,6 +436,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         parent_page_id = last_part.replace("-", "")[:32]
 
                 self.data[CONF_PARENT_PAGE_ID] = parent_page_id
+                self.data[CONF_CREATE_PLANT_SENSORS] = user_input.get(CONF_CREATE_PLANT_SENSORS, True)
 
                 if user_input.get(CONF_CREATE_DATABASE, True):
                     # Create database automatically
