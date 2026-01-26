@@ -269,6 +269,12 @@ Please respond ONLY with a valid JSON object (no markdown, no explanation) with 
     "name": "{plant_name}",
     "type": "Plant|Tree|Shrub|Vegetable|Herb|Lawn",
     "location": "Garden|Balcony|Terrace|Conservatory|Indoor",
+    "lifecycle": "Perennial|Annual|Biennial",
+    "hardiness_zone": "1-13 (USDA hardiness zone number as string)",
+    "soil_type": "Sandy|Loamy|Clay|Silty|Peaty|Chalky|Any",
+    "soil_ph": "Acidic (pH < 6)|Neutral (pH 6-7)|Alkaline (pH > 7)|Any",
+    "height": "expected mature height (e.g., '1-2m' or '30-60cm')",
+    "growth_per_year": "annual growth rate description",
     "sun_exposure": "Full Sun|Partial Sun|Partial Shade|Full Shade",
     "water_interval_days": number (days between watering),
     "water_amount": "Low|Medium|High",
@@ -279,8 +285,10 @@ Please respond ONLY with a valid JSON object (no markdown, no explanation) with 
     "harvest_months": ["Month1", "Month2"] (list of month names, or empty if not applicable),
     "harvest_notes": "text description or empty",
     "companion_plants": "text listing good companion plants",
+    "bad_companions": "text listing plants to avoid planting nearby",
     "bee_friendly": true|false,
     "toxicity": "Safe|Toxic to Pets|Toxic to Children|Toxic to Both",
+    "winterize": true|false (whether plant needs winter protection),
     "care_instructions": "general care tips",
     "special_notes": "any special requirements"
 }}
@@ -584,6 +592,38 @@ async def _create_plant_in_notion(
     # Special Notes (rich_text)
     if plant_data.get("special_notes"):
         properties["Special Notes"] = {"rich_text": [{"text": {"content": plant_data["special_notes"]}}]}
+
+    # Lifecycle (select)
+    if plant_data.get("lifecycle"):
+        properties["Lifecycle"] = {"select": {"name": plant_data["lifecycle"]}}
+
+    # Hardiness Zone (select)
+    if plant_data.get("hardiness_zone"):
+        properties["Hardiness Zone"] = {"select": {"name": str(plant_data["hardiness_zone"])}}
+
+    # Soil Type (select)
+    if plant_data.get("soil_type"):
+        properties["Soil Type"] = {"select": {"name": plant_data["soil_type"]}}
+
+    # Soil pH (select)
+    if plant_data.get("soil_ph"):
+        properties["Soil pH"] = {"select": {"name": plant_data["soil_ph"]}}
+
+    # Height (rich_text)
+    if plant_data.get("height"):
+        properties["Height"] = {"rich_text": [{"text": {"content": plant_data["height"]}}]}
+
+    # Growth per Year (rich_text)
+    if plant_data.get("growth_per_year"):
+        properties["Growth per Year"] = {"rich_text": [{"text": {"content": plant_data["growth_per_year"]}}]}
+
+    # Bad Companions (rich_text)
+    if plant_data.get("bad_companions"):
+        properties["Bad Companions"] = {"rich_text": [{"text": {"content": plant_data["bad_companions"]}}]}
+
+    # Winterize (checkbox)
+    if "winterize" in plant_data:
+        properties["Winterize"] = {"checkbox": bool(plant_data["winterize"])}
 
     try:
         await hass.async_add_executor_job(

@@ -31,6 +31,10 @@ from .const import (
     WATER_AMOUNTS,
     SUN_EXPOSURE,
     TOXICITY,
+    LIFECYCLE,
+    HARDINESS_ZONES,
+    SOIL_TYPES,
+    SOIL_PH,
     MONTHS,
     EXAMPLE_PLANTS,
 )
@@ -221,6 +225,7 @@ def _create_database_sync(notion: Client, parent_page_id: str) -> dict:
             },
             # Companion Planting & Safety
             "Companion Plants": {"type": "rich_text", "rich_text": {}},
+            "Bad Companions": {"type": "rich_text", "rich_text": {}},
             "Bee Friendly": {"type": "checkbox", "checkbox": {}},
             "Toxicity": {
                 "type": "select",
@@ -231,6 +236,43 @@ def _create_database_sync(notion: Client, parent_page_id: str) -> dict:
                     )]
                 }
             },
+            # Plant Characteristics
+            "Lifecycle": {
+                "type": "select",
+                "select": {
+                    "options": [{"name": l, "color": c} for l, c in zip(
+                        LIFECYCLE,
+                        ["green", "yellow", "blue"]
+                    )]
+                }
+            },
+            "Hardiness Zone": {
+                "type": "select",
+                "select": {
+                    "options": [{"name": z, "color": "blue"} for z in HARDINESS_ZONES]
+                }
+            },
+            "Soil Type": {
+                "type": "select",
+                "select": {
+                    "options": [{"name": s, "color": c} for s, c in zip(
+                        SOIL_TYPES,
+                        ["yellow", "brown", "orange", "gray", "brown", "gray", "green"]
+                    )]
+                }
+            },
+            "Soil pH": {
+                "type": "select",
+                "select": {
+                    "options": [{"name": p, "color": c} for p, c in zip(
+                        SOIL_PH,
+                        ["orange", "green", "blue", "gray"]
+                    )]
+                }
+            },
+            "Height": {"type": "rich_text", "rich_text": {}},
+            "Growth per Year": {"type": "rich_text", "rich_text": {}},
+            "Winterize": {"type": "checkbox", "checkbox": {}},
             # Lawn Care (Aeration)
             "Aeration Interval (days)": {"type": "number", "number": {"format": "number"}},
             "Last Aeration": {"type": "date", "date": {}},
@@ -374,6 +416,43 @@ def _add_example_plants(notion: Client, database_id: str) -> None:
                     "rich_text": [{"text": {"content": plant_data["Special Notes"]}}]
                 }
 
+            # Add lifecycle (perennial/annual)
+            if "Lifecycle" in plant_data:
+                properties["Lifecycle"] = {"select": {"name": plant_data["Lifecycle"]}}
+
+            # Add hardiness zone
+            if "Hardiness Zone" in plant_data:
+                properties["Hardiness Zone"] = {"select": {"name": plant_data["Hardiness Zone"]}}
+
+            # Add soil type
+            if "Soil Type" in plant_data:
+                properties["Soil Type"] = {"select": {"name": plant_data["Soil Type"]}}
+
+            # Add soil pH
+            if "Soil pH" in plant_data:
+                properties["Soil pH"] = {"select": {"name": plant_data["Soil pH"]}}
+
+            # Add height
+            if "Height" in plant_data:
+                properties["Height"] = {
+                    "rich_text": [{"text": {"content": plant_data["Height"]}}]
+                }
+
+            # Add growth per year
+            if "Growth per Year" in plant_data:
+                properties["Growth per Year"] = {
+                    "rich_text": [{"text": {"content": plant_data["Growth per Year"]}}]
+                }
+
+            # Add bad companions
+            if "Bad Companions" in plant_data:
+                properties["Bad Companions"] = {
+                    "rich_text": [{"text": {"content": plant_data["Bad Companions"]}}]
+                }
+
+            # Add winterize
+            if "Winterize" in plant_data:
+                properties["Winterize"] = {"checkbox": plant_data["Winterize"]}
 
             notion.pages.create(
                 parent={"database_id": database_id},

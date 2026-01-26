@@ -78,11 +78,24 @@ MONTHS = [
 # Toxicity Levels
 TOXICITY = ["Safe", "Toxic to Pets", "Toxic to Children", "Toxic to Both"]
 
+# Lifecycle (Perennial/Annual)
+LIFECYCLE = ["Perennial", "Annual", "Biennial"]
+
+# Hardiness Zones
+HARDINESS_ZONES = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"]
+
+# Soil Types
+SOIL_TYPES = ["Sandy", "Loamy", "Clay", "Silty", "Peaty", "Chalky", "Any"]
+
+# Soil pH
+SOIL_PH = ["Acidic (pH < 6)", "Neutral (pH 6-7)", "Alkaline (pH > 7)", "Any"]
+
 # Additional Database Properties
 PROPERTY_SUN_EXPOSURE = "Sun Exposure"
 PROPERTY_HARVEST_MONTHS = "Harvest Months"
 PROPERTY_HARVEST_NOTES = "Harvest Notes"
 PROPERTY_COMPANION_PLANTS = "Companion Plants"
+PROPERTY_BAD_COMPANIONS = "Bad Companions"
 PROPERTY_BEE_FRIENDLY = "Bee Friendly"
 PROPERTY_TOXICITY = "Toxicity"
 PROPERTY_AERATION_INTERVAL = "Aeration Interval (days)"
@@ -92,6 +105,13 @@ PROPERTY_LAST_HARVESTED = "Last Harvested"
 PROPERTY_SANDING_INTERVAL = "Sanding Interval (days)"
 PROPERTY_LAST_SANDED = "Last Sanded"
 PROPERTY_NEXT_SANDING = "Next Sanding"
+PROPERTY_LIFECYCLE = "Lifecycle"
+PROPERTY_HARDINESS_ZONE = "Hardiness Zone"
+PROPERTY_SOIL_TYPE = "Soil Type"
+PROPERTY_SOIL_PH = "Soil pH"
+PROPERTY_GROWTH_PER_YEAR = "Growth per Year"
+PROPERTY_HEIGHT = "Height"
+PROPERTY_WINTERIZE = "Winterize"
 
 # All updatable properties (for service dropdown)
 UPDATABLE_PROPERTIES = [
@@ -113,8 +133,16 @@ UPDATABLE_PROPERTIES = [
     "Last Sanded",
     "Sun Exposure",
     "Companion Plants",
+    "Bad Companions",
     "Bee Friendly",
     "Toxicity",
+    "Lifecycle",
+    "Hardiness Zone",
+    "Soil Type",
+    "Soil pH",
+    "Growth per Year",
+    "Height",
+    "Winterize",
     "Care Instructions",
     "Special Notes",
     "Notes",
@@ -130,6 +158,12 @@ EXAMPLE_PLANTS = [
         "Type": "Vegetable",
         "Location": "Garden",
         "Active": True,
+        "Lifecycle": "Annual",
+        "Hardiness Zone": "10",
+        "Soil Type": "Loamy",
+        "Soil pH": "Neutral (pH 6-7)",
+        "Height": "1-2m (3-6ft)",
+        "Growth per Year": "Full growth in one season",
         "Sun Exposure": "Full Sun",
         "Fertilize Interval (days)": 14,
         "Fertilizer Type": "Tomato fertilizer, NPK 5-6-8",
@@ -140,16 +174,24 @@ EXAMPLE_PLANTS = [
         "Harvest Months": ["July", "August", "September"],
         "Harvest Notes": "Pick when fully colored and slightly soft. Harvest regularly to encourage more fruit.",
         "Companion Plants": "Basil, Marigolds, Carrots",
+        "Bad Companions": "Brassicas, Fennel, Corn",
         "Bee Friendly": True,
         "Toxicity": "Safe",
         "Care Instructions": "Fertilize regularly and water sufficiently. Provide support.",
-        "Special Notes": "Requires sunny location"
+        "Special Notes": "Requires sunny location",
+        "Winterize": False
     },
     {
         "Name": "Rose Bush",
         "Type": "Plant",
         "Location": "Garden",
         "Active": True,
+        "Lifecycle": "Perennial",
+        "Hardiness Zone": "5",
+        "Soil Type": "Loamy",
+        "Soil pH": "Neutral (pH 6-7)",
+        "Height": "1-2m (3-6ft)",
+        "Growth per Year": "30-60cm (1-2ft)",
         "Sun Exposure": "Full Sun",
         "Fertilize Interval (days)": 30,
         "Fertilizer Type": "Rose fertilizer",
@@ -158,16 +200,24 @@ EXAMPLE_PLANTS = [
         "Prune Months": ["February", "March"],
         "Prune Instructions": "Cut back to 3-5 buds in spring. Remove weak and diseased shoots.",
         "Companion Plants": "Lavender, Geraniums, Garlic",
+        "Bad Companions": "Buxus, other roses too close",
         "Bee Friendly": True,
         "Toxicity": "Toxic to Pets",
         "Care Instructions": "Remove spent blooms after flowering",
-        "Special Notes": "Frost-sensitive, protect in winter"
+        "Special Notes": "Frost-sensitive, protect in winter",
+        "Winterize": True
     },
     {
         "Name": "Apple Tree",
         "Type": "Tree",
         "Location": "Garden",
         "Active": True,
+        "Lifecycle": "Perennial",
+        "Hardiness Zone": "4",
+        "Soil Type": "Loamy",
+        "Soil pH": "Neutral (pH 6-7)",
+        "Height": "3-5m (10-16ft)",
+        "Growth per Year": "30-60cm (1-2ft)",
         "Sun Exposure": "Full Sun",
         "Fertilize Interval (days)": 90,
         "Fertilizer Type": "Fruit tree fertilizer",
@@ -177,16 +227,25 @@ EXAMPLE_PLANTS = [
         "Prune Instructions": "Thinning cut: Remove diseased, inward-growing and crossing branches.",
         "Harvest Months": ["September", "October"],
         "Harvest Notes": "Apples are ready when they come off easily with a gentle twist.",
+        "Companion Plants": "Chives, Nasturtiums, Clover",
+        "Bad Companions": "Walnut, Grass close to trunk",
         "Bee Friendly": True,
         "Toxicity": "Safe (seeds contain cyanide - don't eat in large quantities)",
         "Care Instructions": "Check regularly for pests",
-        "Special Notes": "Needs pollinator nearby"
+        "Special Notes": "Needs pollinator nearby",
+        "Winterize": False
     },
     {
         "Name": "Basil",
         "Type": "Herb",
         "Location": "Balcony",
         "Active": True,
+        "Lifecycle": "Annual",
+        "Hardiness Zone": "10",
+        "Soil Type": "Loamy",
+        "Soil pH": "Neutral (pH 6-7)",
+        "Height": "30-60cm (1-2ft)",
+        "Growth per Year": "Full growth in one season",
         "Sun Exposure": "Full Sun",
         "Fertilize Interval (days)": 21,
         "Fertilizer Type": "Liquid fertilizer for herbs",
@@ -197,16 +256,24 @@ EXAMPLE_PLANTS = [
         "Harvest Months": ["June", "July", "August", "September"],
         "Harvest Notes": "Pick leaves in the morning for best flavor. Use fresh or dry for storage.",
         "Companion Plants": "Tomatoes, Peppers",
+        "Bad Companions": "Sage, Rue",
         "Bee Friendly": True,
         "Toxicity": "Safe",
         "Care Instructions": "Keep warm and sunny, not too wet",
-        "Special Notes": "Not winter-hardy, harvest in autumn"
+        "Special Notes": "Not winter-hardy, harvest in autumn",
+        "Winterize": False
     },
     {
         "Name": "Lawn",
         "Type": "Lawn",
         "Location": "Garden",
         "Active": True,
+        "Lifecycle": "Perennial",
+        "Hardiness Zone": "3",
+        "Soil Type": "Loamy",
+        "Soil pH": "Neutral (pH 6-7)",
+        "Height": "5-10cm (2-4in)",
+        "Growth per Year": "Continuous growth during season",
         "Sun Exposure": "Partial Sun",
         "Fertilize Interval (days)": 60,
         "Fertilizer Type": "Lawn fertilizer, NPK 20-5-10",
@@ -215,6 +282,7 @@ EXAMPLE_PLANTS = [
         "Aeration Interval (days)": 365,
         "Sanding Interval (days)": 365,
         "Care Instructions": "Mow regularly, keep at 3-4 inches height. Water deeply but infrequently.",
-        "Special Notes": "Aerate and sand annually in spring or fall. Overseed bare patches."
+        "Special Notes": "Aerate and sand annually in spring or fall. Overseed bare patches.",
+        "Winterize": False
     }
 ]

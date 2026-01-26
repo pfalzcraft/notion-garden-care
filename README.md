@@ -25,9 +25,17 @@ Manage your garden with Notion and automate reminders with Home Assistant. Track
 - ☀️ **Sun Exposure** - Track light requirements (Full Sun, Partial Sun, Shade)
 - 🍅 **Harvest Info** - Record harvest months and notes
 - 🌻 **Companion Plants** - Get planting suggestions
+- 🚫 **Bad Companions** - Plants to avoid planting nearby
 - 🐝 **Bee Friendly** - Mark pollinator-friendly plants
 - ⚠️ **Toxicity Warnings** - Safety info for pets and children
 - 🌱 **Lawn Care** - Track aeration and sanding schedules
+- 🔄 **Lifecycle** - Perennial, Annual, or Biennial
+- 🌡️ **Hardiness Zone** - USDA zones 1-13
+- 🪴 **Soil Type** - Sandy, Loamy, Clay, etc.
+- ⚗️ **Soil pH** - Acidic, Neutral, or Alkaline
+- 📏 **Height** - Expected mature height
+- 📈 **Growth per Year** - Annual growth rate
+- ❄️ **Winterize** - Winter protection requirements
 
 ## 🚀 Quick Start (3 Steps!)
 
@@ -246,14 +254,18 @@ Add plants with automatic care information using AI:
 
 The AI will automatically fill in:
 - Plant type and location
+- Lifecycle (perennial/annual/biennial)
+- Hardiness zone and soil requirements
 - Sun exposure requirements
 - Watering schedule and amount
 - Fertilizing schedule and type
 - Pruning months and instructions
 - Harvest information (if applicable)
-- Companion plants
+- Height and growth rate
+- Companion plants and bad companions
 - Bee-friendly status
 - Toxicity warnings
+- Winter protection requirements
 - Care instructions and special notes
 
 ### Automation Blueprints
@@ -312,8 +324,18 @@ The integration creates these properties automatically:
 - **Harvest Notes** - Harvest tips and timing
 - **Last Harvested** - Date of last harvest
 
+### Plant Characteristics
+- **Lifecycle** - Perennial, Annual, or Biennial
+- **Hardiness Zone** - USDA zones 1-13
+- **Soil Type** - Sandy, Loamy, Clay, Silty, Peaty, Chalky, Any
+- **Soil pH** - Acidic (pH < 6), Neutral (pH 6-7), Alkaline (pH > 7), Any
+- **Height** - Expected mature height
+- **Growth per Year** - Annual growth rate
+- **Winterize** - Does it need winter protection?
+
 ### Companion & Safety
 - **Companion Plants** - Plants that grow well together
+- **Bad Companions** - Plants to avoid planting nearby
 - **Bee Friendly** - Is it good for pollinators?
 - **Toxicity** - Safety warnings (Safe, Toxic to Pets, Toxic to Children, Toxic to Both)
 
