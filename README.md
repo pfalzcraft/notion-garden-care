@@ -18,6 +18,7 @@ Manage your garden with Notion and automate reminders with Home Assistant. Track
 - 🔄 **Bidirectional Sync** - Update Notion from Home Assistant and vice versa
 - 🪴 **Example Plants** - Pre-configured templates to get started
 - 📱 **Mobile Friendly** - Works on all Home Assistant apps
+- 🤖 **AI-Powered Plant Addition** - Add plants with automatic care info using your AI assistant
 
 ### Extended Plant Information
 
@@ -26,7 +27,7 @@ Manage your garden with Notion and automate reminders with Home Assistant. Track
 - 🌻 **Companion Plants** - Get planting suggestions
 - 🐝 **Bee Friendly** - Mark pollinator-friendly plants
 - ⚠️ **Toxicity Warnings** - Safety info for pets and children
-- 🌱 **Lawn Care** - Track aeration schedules
+- 🌱 **Lawn Care** - Track aeration and sanding schedules
 
 ## 🚀 Quick Start (3 Steps!)
 
@@ -155,13 +156,13 @@ Understanding when plants appear in each sensor:
 
 ### Services
 
-Update your plants from Home Assistant (7 services available):
+Update your plants from Home Assistant (10 services available):
 
 ```yaml
 # Mark plant as watered (today)
 service: notion_garden_care.mark_as_watered
 data:
-  plant_name: "Tomatoes"
+  entity_id: sensor.garden_care_tomatoes  # Or use plant_name
 
 # Mark plant as watered on a specific date
 service: notion_garden_care.mark_as_watered
@@ -189,12 +190,22 @@ service: notion_garden_care.mark_as_aerated
 data:
   plant_name: "Lawn"
 
-# Update any property (generic service)
+# Mark lawn as sanded
+service: notion_garden_care.mark_as_sanded
+data:
+  plant_name: "Lawn"
+
+# Update any property (generic service with dropdown)
 service: notion_garden_care.update_plant_property
 data:
-  plant_name: "Tomatoes"
+  entity_id: sensor.garden_care_tomatoes
   property_name: "Water Interval (days)"
   property_value: "5"
+
+# Add a new plant using AI
+service: notion_garden_care.add_plant
+data:
+  plant_name: "Lavender"
 
 # Refresh data from Notion
 service: notion_garden_care.refresh_database
@@ -203,14 +214,47 @@ service: notion_garden_care.refresh_database
 #### Service Parameters
 
 All `mark_as_*` services accept:
+- `entity_id` (entity selector) - Select plant from dropdown (or)
 - `plant_name` (string) - Name of the plant (or)
 - `page_id` (string) - Notion page ID
 - `date` (optional) - Date in YYYY-MM-DD format (defaults to today)
 
 The `update_plant_property` service accepts:
-- `plant_name` or `page_id` - To identify the plant
-- `property_name` (required) - Exact Notion property name
+- `entity_id`, `plant_name`, or `page_id` - To identify the plant
+- `property_name` (required) - Select from dropdown with all available properties
 - `property_value` (required) - Value to set (auto-detects type: number, checkbox, date, multi-select, or text)
+
+The `add_plant` service accepts:
+- `plant_name` (required) - Name of the plant to add (AI will fill in all care details)
+
+### AI-Powered Plant Addition
+
+Add plants with automatic care information using AI:
+
+1. **Configure AI Agent:**
+   - Go to **Settings** → **Devices & Services**
+   - Find **Notion Garden Care** → Click **Configure** (gear icon)
+   - Select your **Conversation Agent** (e.g., OpenAI, Google AI, Claude)
+   - Click **Submit**
+
+2. **Add Plants:**
+   ```yaml
+   service: notion_garden_care.add_plant
+   data:
+     plant_name: "Lavender"
+   ```
+
+The AI will automatically fill in:
+- Plant type and location
+- Sun exposure requirements
+- Watering schedule and amount
+- Fertilizing schedule and type
+- Pruning months and instructions
+- Harvest information (if applicable)
+- Companion plants
+- Bee-friendly status
+- Toxicity warnings
+- Care instructions and special notes
 
 ### Automation Blueprints
 
@@ -266,6 +310,7 @@ The integration creates these properties automatically:
 ### Harvest
 - **Harvest Months** - When to harvest
 - **Harvest Notes** - Harvest tips and timing
+- **Last Harvested** - Date of last harvest
 
 ### Companion & Safety
 - **Companion Plants** - Plants that grow well together
@@ -276,6 +321,9 @@ The integration creates these properties automatically:
 - **Aeration Interval (days)** - Days between aeration
 - **Last Aeration** - Date of last aeration
 - **Next Aeration** - Auto-calculated ✨
+- **Sanding Interval (days)** - Days between sanding
+- **Last Sanded** - Date of last sanding
+- **Next Sanding** - Auto-calculated ✨
 
 ### Notes
 - **Care Instructions** - General care tips

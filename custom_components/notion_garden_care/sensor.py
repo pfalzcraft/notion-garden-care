@@ -471,6 +471,40 @@ class PlantSensor(CoordinatorEntity, SensorEntity):
         except (KeyError, TypeError):
             pass
 
+        # Check if needs harvesting this month
+        try:
+            harvest_months_prop = plant_data.get("properties", {}).get("Harvest Months", {})
+            if harvest_months_prop.get("multi_select"):
+                harvest_months = [m["name"] for m in harvest_months_prop["multi_select"]]
+                if current_month in harvest_months:
+                    statuses.append("Ready to Harvest")
+        except (KeyError, TypeError):
+            pass
+
+        # Check if needs aeration (for lawns)
+        try:
+            next_aeration_prop = plant_data.get("properties", {}).get("Next Aeration", {})
+            if next_aeration_prop.get("formula") and next_aeration_prop["formula"].get("type") == "date":
+                date_obj = next_aeration_prop["formula"].get("date")
+                if date_obj:
+                    next_aeration_date = date_obj.get("start") if isinstance(date_obj, dict) else date_obj
+                    if next_aeration_date and next_aeration_date <= today:
+                        statuses.append("Needs Aeration")
+        except (KeyError, TypeError):
+            pass
+
+        # Check if needs sanding (for lawns)
+        try:
+            next_sanding_prop = plant_data.get("properties", {}).get("Next Sanding", {})
+            if next_sanding_prop.get("formula") and next_sanding_prop["formula"].get("type") == "date":
+                date_obj = next_sanding_prop["formula"].get("date")
+                if date_obj:
+                    next_sanding_date = date_obj.get("start") if isinstance(date_obj, dict) else date_obj
+                    if next_sanding_date and next_sanding_date <= today:
+                        statuses.append("Needs Sanding")
+        except (KeyError, TypeError):
+            pass
+
         if statuses:
             return ", ".join(statuses)
         return "OK"

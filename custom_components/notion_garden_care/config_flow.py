@@ -14,6 +14,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 
+from homeassistant.helpers import entity_registry as er
+
 from .const import (
     DOMAIN,
     CONF_NOTION_TOKEN,
@@ -22,6 +24,7 @@ from .const import (
     CONF_CREATE_DATABASE,
     CONF_ADD_EXAMPLES,
     CONF_CREATE_PLANT_SENSORS,
+    CONF_CONVERSATION_AGENT,
     NOTION_API_VERSION,
     PLANT_TYPES,
     LOCATIONS,
@@ -206,6 +209,7 @@ def _create_database_sync(notion: Client, parent_page_id: str) -> dict:
                 }
             },
             "Harvest Notes": {"type": "rich_text", "rich_text": {}},
+            "Last Harvested": {"type": "date", "date": {}},
             "Sun Exposure": {
                 "type": "select",
                 "select": {
@@ -234,6 +238,15 @@ def _create_database_sync(notion: Client, parent_page_id: str) -> dict:
                 "type": "formula",
                 "formula": {
                     "expression": 'dateAdd(prop("Last Aeration"), prop("Aeration Interval (days)"), "days")'
+                }
+            },
+            # Lawn Care (Sanding)
+            "Sanding Interval (days)": {"type": "number", "number": {"format": "number"}},
+            "Last Sanded": {"type": "date", "date": {}},
+            "Next Sanding": {
+                "type": "formula",
+                "formula": {
+                    "expression": 'dateAdd(prop("Last Sanded"), prop("Sanding Interval (days)"), "days")'
                 }
             },
             # General Care & Notes
@@ -339,6 +352,16 @@ def _add_example_plants(notion: Client, database_id: str) -> None:
                     "date": {"start": last_aeration.strftime("%Y-%m-%d")}
                 }
 
+            # Add sanding for lawns
+            if "Sanding Interval (days)" in plant_data:
+                properties["Sanding Interval (days)"] = {
+                    "number": plant_data["Sanding Interval (days)"]
+                }
+                last_sanded = now - timedelta(days=300)
+                properties["Last Sanded"] = {
+                    "date": {"start": last_sanded.strftime("%Y-%m-%d")}
+                }
+
             # Add care instructions
             if "Care Instructions" in plant_data:
                 properties["Care Instructions"] = {
@@ -369,6 +392,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def __init__(self):
         """Initialize the config flow."""
         self.data = {}
+
+    @staticmethod
+    def async_get_options_flow(config_entry):
+        """Get the options flow for this handler."""
+        return OptionsFlowHandler(config_entry)
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -506,6 +534,53 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=STEP_DATABASE_SCHEMA,
             errors=errors,
         )
+
+
+class OptionsFlowHandler(config_entries.OptionsFlow):
+    """Handle options flow for Notion Garden Care."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        """Initialize options flow."""
+        self._config_entry = config_entry
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Manage the options."""
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        # Get list of conversation agents
+        conversation_agents = await self._get_conversation_agents()
+
+        # Get current value
+        current_agent = self._config_entry.options.get(CONF_CONVERSATION_AGENT, "")
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_CONVERSATION_AGENT,
+                        default=current_agent,
+                    ): vol.In(conversation_agents),
+                }
+            ),
+        )
+
+    async def _get_conversation_agents(self) -> dict[str, str]:
+        """Get available conversation agents."""
+        agents = {"": "None (disable AI features)"}
+
+        # Get all conversation entities
+        entity_reg = er.async_get(self.hass)
+        for entity in entity_reg.entities.values():
+            if entity.domain == "conversation":
+                # Use entity_id as key, friendly name or entity_id as value
+                name = entity.name or entity.original_name or entity.entity_id
+                agents[entity.entity_id] = name
+
+        return agents
 
 
 class CannotConnect(HomeAssistantError):

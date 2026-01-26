@@ -34,5 +34,16 @@
     "abort": {
       "already_configured": "This Notion integration is already configured"
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "AI Configuration",
+        "description": "Select an AI conversation agent to enable the 'Add Plant' feature. The AI will automatically fill in plant care information.",
+        "data": {
+          "conversation_agent": "Conversation Agent (AI Model)"
+        }
+      }
+    }
   }
 }

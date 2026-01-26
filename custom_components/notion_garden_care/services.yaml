@@ -4,22 +4,28 @@ mark_as_watered:
   name: Mark Plant as Watered
   description: Updates the "Last Watered" date in Notion for a plant
   fields:
+    entity_id:
+      name: Plant
+      description: Select the plant sensor
+      selector:
+        entity:
+          integration: notion_garden_care
+          domain: sensor
     page_id:
       name: Page ID
-      description: The Notion page ID of the plant (optional if plant_name is provided)
+      description: The Notion page ID (alternative to selecting entity)
       example: "1234567890abcdef"
       selector:
         text:
     plant_name:
       name: Plant Name
-      description: The name of the plant (optional if page_id is provided)
+      description: The name of the plant (alternative to selecting entity)
       example: "Tomatoes"
       selector:
         text:
     date:
       name: Date
-      description: The date to set (optional, defaults to today). Format YYYY-MM-DD
-      example: "2026-01-25"
+      description: Date to set (defaults to today if not specified)
       selector:
         date:
 
@@ -27,22 +33,28 @@ mark_as_fertilized:
   name: Mark Plant as Fertilized
   description: Updates the "Last Fertilized" date in Notion for a plant
   fields:
+    entity_id:
+      name: Plant
+      description: Select the plant sensor
+      selector:
+        entity:
+          integration: notion_garden_care
+          domain: sensor
     page_id:
       name: Page ID
-      description: The Notion page ID of the plant (optional if plant_name is provided)
+      description: The Notion page ID (alternative to selecting entity)
       example: "1234567890abcdef"
       selector:
         text:
     plant_name:
       name: Plant Name
-      description: The name of the plant (optional if page_id is provided)
+      description: The name of the plant (alternative to selecting entity)
       example: "Rose Bush"
       selector:
         text:
     date:
       name: Date
-      description: The date to set (optional, defaults to today). Format YYYY-MM-DD
-      example: "2026-01-25"
+      description: Date to set (defaults to today if not specified)
       selector:
         date:
 
@@ -50,22 +62,28 @@ mark_as_pruned:
   name: Mark Plant as Pruned
   description: Updates the "Last Pruned" date in Notion for a plant
   fields:
+    entity_id:
+      name: Plant
+      description: Select the plant sensor
+      selector:
+        entity:
+          integration: notion_garden_care
+          domain: sensor
     page_id:
       name: Page ID
-      description: The Notion page ID of the plant (optional if plant_name is provided)
+      description: The Notion page ID (alternative to selecting entity)
       example: "1234567890abcdef"
       selector:
         text:
     plant_name:
       name: Plant Name
-      description: The name of the plant (optional if page_id is provided)
+      description: The name of the plant (alternative to selecting entity)
       example: "Apple Tree"
       selector:
         text:
     date:
       name: Date
-      description: The date to set (optional, defaults to today). Format YYYY-MM-DD
-      example: "2026-01-25"
+      description: Date to set (defaults to today if not specified)
       selector:
         date:
 
@@ -73,22 +91,28 @@ mark_as_aerated:
   name: Mark Lawn as Aerated
   description: Updates the "Last Aeration" date in Notion for a lawn
   fields:
+    entity_id:
+      name: Plant
+      description: Select the lawn/plant sensor
+      selector:
+        entity:
+          integration: notion_garden_care
+          domain: sensor
     page_id:
       name: Page ID
-      description: The Notion page ID of the lawn (optional if plant_name is provided)
+      description: The Notion page ID (alternative to selecting entity)
       example: "1234567890abcdef"
       selector:
         text:
     plant_name:
       name: Plant Name
-      description: The name of the lawn (optional if page_id is provided)
+      description: The name of the lawn (alternative to selecting entity)
       example: "Lawn"
       selector:
         text:
     date:
       name: Date
-      description: The date to set (optional, defaults to today). Format YYYY-MM-DD
-      example: "2026-01-25"
+      description: Date to set (defaults to today if not specified)
       selector:
         date:
 
@@ -96,22 +120,57 @@ mark_as_harvested:
   name: Mark Plant as Harvested
   description: Updates the "Last Harvested" date in Notion for a plant
   fields:
+    entity_id:
+      name: Plant
+      description: Select the plant sensor
+      selector:
+        entity:
+          integration: notion_garden_care
+          domain: sensor
     page_id:
       name: Page ID
-      description: The Notion page ID of the plant (optional if plant_name is provided)
+      description: The Notion page ID (alternative to selecting entity)
       example: "1234567890abcdef"
       selector:
         text:
     plant_name:
       name: Plant Name
-      description: The name of the plant (optional if page_id is provided)
+      description: The name of the plant (alternative to selecting entity)
       example: "Tomatoes"
       selector:
         text:
     date:
       name: Date
-      description: The date to set (optional, defaults to today). Format YYYY-MM-DD
-      example: "2026-01-25"
+      description: Date to set (defaults to today if not specified)
+      selector:
+        date:
+
+mark_as_sanded:
+  name: Mark Lawn as Sanded
+  description: Updates the "Last Sanded" date in Notion for a lawn
+  fields:
+    entity_id:
+      name: Plant
+      description: Select the lawn sensor
+      selector:
+        entity:
+          integration: notion_garden_care
+          domain: sensor
+    page_id:
+      name: Page ID
+      description: The Notion page ID (alternative to selecting entity)
+      example: "1234567890abcdef"
+      selector:
+        text:
+    plant_name:
+      name: Plant Name
+      description: The name of the lawn (alternative to selecting entity)
+      example: "Lawn"
+      selector:
+        text:
+    date:
+      name: Date
+      description: Date to set (defaults to today if not specified)
       selector:
         date:
 
@@ -119,25 +178,58 @@ update_plant_property:
   name: Update Plant Property
   description: Updates any property in Notion for a plant. Supports text, number, checkbox, date, and multi-select values.
   fields:
+    entity_id:
+      name: Plant
+      description: Select the plant sensor
+      selector:
+        entity:
+          integration: notion_garden_care
+          domain: sensor
     page_id:
       name: Page ID
-      description: The Notion page ID of the plant (optional if plant_name is provided)
+      description: The Notion page ID (alternative to selecting entity)
       example: "1234567890abcdef"
       selector:
         text:
     plant_name:
       name: Plant Name
-      description: The name of the plant (optional if page_id is provided)
+      description: The name of the plant (alternative to selecting entity)
       example: "Tomatoes"
       selector:
         text:
     property_name:
       name: Property Name
-      description: The exact name of the Notion property to update
-      example: "Water Interval (days)"
+      description: Select the Notion property to update
       required: true
       selector:
-        text:
+        select:
+          options:
+            - "Water Interval (days)"
+            - "Last Watered"
+            - "Water Amount"
+            - "Fertilize Interval (days)"
+            - "Last Fertilized"
+            - "Fertilizer Type"
+            - "Last Pruned"
+            - "Prune Months"
+            - "Prune Instructions"
+            - "Last Harvested"
+            - "Harvest Months"
+            - "Harvest Notes"
+            - "Aeration Interval (days)"
+            - "Last Aeration"
+            - "Sanding Interval (days)"
+            - "Last Sanded"
+            - "Sun Exposure"
+            - "Companion Plants"
+            - "Bee Friendly"
+            - "Toxicity"
+            - "Care Instructions"
+            - "Special Notes"
+            - "Notes"
+            - "Active"
+            - "Type"
+            - "Location"
     property_value:
       name: Property Value
       description: "The value to set. Type is auto-detected: number for integers/floats, true/false for checkbox, YYYY-MM-DD for dates, list for multi-select, otherwise text"
@@ -149,3 +241,15 @@ update_plant_property:
 refresh_database:
   name: Refresh Database
   description: Manually refresh the Notion Garden Care database data
+
+add_plant:
+  name: Add Plant (AI)
+  description: Add a new plant using AI to automatically fill in care information. Requires a conversation agent to be configured in the integration options.
+  fields:
+    plant_name:
+      name: Plant Name
+      description: The name of the plant to add (e.g., "Lavender", "Strawberry", "Mint")
+      example: "Lavender"
+      required: true
+      selector:
+        text:

@@ -9,6 +9,7 @@ CONF_DATABASE_ID = "database_id"
 CONF_CREATE_DATABASE = "create_database"
 CONF_ADD_EXAMPLES = "add_example_plants"
 CONF_CREATE_PLANT_SENSORS = "create_plant_sensors"
+CONF_CONVERSATION_AGENT = "conversation_agent"
 
 # Notion API
 NOTION_API_VERSION = "2022-06-28"
@@ -23,8 +24,10 @@ SERVICE_UPDATE_FERTILIZED = "mark_as_fertilized"
 SERVICE_UPDATE_PRUNED = "mark_as_pruned"
 SERVICE_UPDATE_AERATED = "mark_as_aerated"
 SERVICE_UPDATE_HARVESTED = "mark_as_harvested"
+SERVICE_UPDATE_SANDED = "mark_as_sanded"
 SERVICE_UPDATE_PROPERTY = "update_plant_property"
 SERVICE_REFRESH_DATA = "refresh_database"
+SERVICE_ADD_PLANT = "add_plant"
 
 # Attributes
 ATTR_PAGE_ID = "page_id"
@@ -32,6 +35,7 @@ ATTR_PLANT_NAME = "plant_name"
 ATTR_PROPERTY_NAME = "property_name"
 ATTR_PROPERTY_VALUE = "property_value"
 ATTR_DATE = "date"
+ATTR_ENTITY_ID = "entity_id"
 
 # Database Properties
 PROPERTY_NAME = "Name"
@@ -84,6 +88,40 @@ PROPERTY_TOXICITY = "Toxicity"
 PROPERTY_AERATION_INTERVAL = "Aeration Interval (days)"
 PROPERTY_LAST_AERATION = "Last Aeration"
 PROPERTY_NEXT_AERATION = "Next Aeration"
+PROPERTY_LAST_HARVESTED = "Last Harvested"
+PROPERTY_SANDING_INTERVAL = "Sanding Interval (days)"
+PROPERTY_LAST_SANDED = "Last Sanded"
+PROPERTY_NEXT_SANDING = "Next Sanding"
+
+# All updatable properties (for service dropdown)
+UPDATABLE_PROPERTIES = [
+    "Water Interval (days)",
+    "Last Watered",
+    "Water Amount",
+    "Fertilize Interval (days)",
+    "Last Fertilized",
+    "Fertilizer Type",
+    "Last Pruned",
+    "Prune Months",
+    "Prune Instructions",
+    "Last Harvested",
+    "Harvest Months",
+    "Harvest Notes",
+    "Aeration Interval (days)",
+    "Last Aeration",
+    "Sanding Interval (days)",
+    "Last Sanded",
+    "Sun Exposure",
+    "Companion Plants",
+    "Bee Friendly",
+    "Toxicity",
+    "Care Instructions",
+    "Special Notes",
+    "Notes",
+    "Active",
+    "Type",
+    "Location",
+]
 
 # Example Plants
 EXAMPLE_PLANTS = [
@@ -175,7 +213,8 @@ EXAMPLE_PLANTS = [
         "Water Interval (days)": 3,
         "Water Amount": "Medium",
         "Aeration Interval (days)": 365,
+        "Sanding Interval (days)": 365,
         "Care Instructions": "Mow regularly, keep at 3-4 inches height. Water deeply but infrequently.",
-        "Special Notes": "Aerate annually in spring or fall. Overseed bare patches."
+        "Special Notes": "Aerate and sand annually in spring or fall. Overseed bare patches."
     }
 ]
