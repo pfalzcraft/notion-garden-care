@@ -476,10 +476,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     )
                     self.data[CONF_DATABASE_ID] = database_id
 
-                    return self.async_create_entry(
-                        title="Notion Garden Care",
-                        data=self.data
-                    )
+                    # Go to AI configuration step
+                    return await self.async_step_ai_config()
                 else:
                     # Ask for existing database ID
                     return await self.async_step_database()
@@ -521,10 +519,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
                 self.data[CONF_DATABASE_ID] = database_id
 
-                return self.async_create_entry(
-                    title="Notion Garden Care",
-                    data=self.data
-                )
+                # Go to AI configuration step
+                return await self.async_step_ai_config()
             except Exception:  # pylint: disable=broad-except
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
@@ -534,6 +530,43 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=STEP_DATABASE_SCHEMA,
             errors=errors,
         )
+
+    async def async_step_ai_config(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Handle AI conversation agent configuration."""
+        if user_input is not None:
+            # Store AI config in options (not data, since it's optional config)
+            return self.async_create_entry(
+                title="Notion Garden Care",
+                data=self.data,
+                options={CONF_CONVERSATION_AGENT: user_input.get(CONF_CONVERSATION_AGENT, "")}
+            )
+
+        # Get list of conversation agents
+        conversation_agents = await self._get_conversation_agents()
+
+        return self.async_show_form(
+            step_id="ai_config",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(CONF_CONVERSATION_AGENT, default=""): vol.In(conversation_agents),
+                }
+            ),
+        )
+
+    async def _get_conversation_agents(self) -> dict[str, str]:
+        """Get available conversation agents."""
+        agents = {"": "None (disable AI features)"}
+
+        # Get all conversation entities
+        entity_reg = er.async_get(self.hass)
+        for entity in entity_reg.entities.values():
+            if entity.domain == "conversation":
+                name = entity.name or entity.original_name or entity.entity_id
+                agents[entity.entity_id] = name
+
+        return agents
 
 
 class OptionsFlowHandler(config_entries.OptionsFlow):

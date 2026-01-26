@@ -24,6 +24,13 @@
         "data": {
           "database_id": "Database URL or ID"
         }
+      },
+      "ai_config": {
+        "title": "AI Configuration",
+        "description": "Select an AI conversation agent to enable the 'Add Plant' feature. The AI will automatically fill in plant care information. You can skip this step and configure it later.",
+        "data": {
+          "conversation_agent": "Conversation Agent (AI Model)"
+        }
       }
     },
     "error": {

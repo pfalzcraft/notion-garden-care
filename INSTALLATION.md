@@ -22,7 +22,7 @@ Once this integration is added to HACS, you'll be able to install it with one cl
    Clone or download this repository:
    ```bash
    cd /config  # or wherever your Home Assistant config directory is
-   git clone https://github.com/yourusername/notion-garden-care.git
+   git clone https://github.com/pfalzcraft/notion-garden-care.git
    ```
 
 2. **Copy Files to Custom Components**
@@ -300,8 +300,8 @@ Then restart Home Assistant.
 
 ## 📞 Support
 
-- **Issues:** [GitHub Issues](https://github.com/yourusername/notion-garden-care/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/yourusername/notion-garden-care/discussions)
+- **Issues:** [GitHub Issues](https://github.com/pfalzcraft/notion-garden-care/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/pfalzcraft/notion-garden-care/discussions)
 - **Documentation:** [README.md](README.md)
 
 ---

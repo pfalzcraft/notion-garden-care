@@ -384,20 +384,46 @@ class PlantSensor(CoordinatorEntity, SensorEntity):
 
     def __init__(self, coordinator: DataUpdateCoordinator, plant_data: dict) -> None:
         """Initialize the plant sensor."""
-        super().__init__(coordinator)
         self._page_id = plant_data.get("id", "")
         self._plant_name = self._extract_plant_name(plant_data)
 
-        # Create unique ID and name based on plant name
+        # Create safe name for entity_id - must be done BEFORE super().__init__
         if self._plant_name:
-            safe_name = self._plant_name.lower().replace(" ", "_").replace("-", "_")
-            self._attr_unique_id = f"notion_garden_care_plant_{safe_name}"
-            self._attr_name = f"Garden Care {self._plant_name}"
+            # Remove special characters and normalize
+            import re
+            safe = self._plant_name.lower()
+            safe = re.sub(r'[^a-z0-9_]', '_', safe)  # Replace non-alphanumeric with underscore
+            safe = re.sub(r'_+', '_', safe)  # Replace multiple underscores with single
+            safe = safe.strip('_')  # Remove leading/trailing underscores
+            self._safe_name = safe
         else:
-            self._attr_unique_id = f"notion_garden_care_plant_{self._page_id[:8]}"
-            self._attr_name = f"Garden Care Plant {self._page_id[:8]}"
+            self._safe_name = self._page_id[:8]
+
+        # Set entity_id BEFORE calling super().__init__()
+        # This ensures the entity registry uses our specified entity_id
+        self.entity_id = f"sensor.garden_care_{self._safe_name}"
+
+        # Now call parent init
+        super().__init__(coordinator)
+
+        # Set unique_id and name after super init
+        self._attr_unique_id = f"garden_care_{self._safe_name}"
+        if self._plant_name:
+            self._attr_name = self._plant_name  # Friendly name is just the plant name
+        else:
+            self._attr_name = f"Plant {self._page_id[:8]}"
 
         self._attr_icon = "mdi:flower"
+
+        _LOGGER.debug(
+            "Created PlantSensor: name=%s, entity_id=%s, unique_id=%s",
+            self._attr_name, self.entity_id, self._attr_unique_id
+        )
+
+    @property
+    def suggested_object_id(self) -> str:
+        """Return the suggested object ID (used when entity_id not set)."""
+        return f"garden_care_{self._safe_name}"
 
     def _extract_plant_name(self, plant_data: dict) -> str | None:
         """Extract plant name from Notion page data."""

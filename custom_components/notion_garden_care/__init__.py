@@ -316,12 +316,11 @@ Respond ONLY with the JSON object, nothing else."""
             # Create the plant in Notion
             await _create_plant_in_notion(hass, entry.entry_id, plant_data)
 
-            # Refresh sensor data
-            coordinator = hass.data[DOMAIN][entry.entry_id].get("coordinator")
-            if coordinator:
-                await coordinator.async_request_refresh()
-
             _LOGGER.info("Successfully added plant '%s' using AI", plant_name)
+
+            # Reload the integration to create the new sensor
+            await hass.config_entries.async_reload(entry.entry_id)
+            _LOGGER.info("Integration reloaded to create sensor for '%s'", plant_name)
 
         except json.JSONDecodeError as err:
             _LOGGER.error("Failed to parse AI response as JSON: %s", err)
