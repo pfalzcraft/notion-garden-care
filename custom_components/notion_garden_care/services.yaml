@@ -204,40 +204,50 @@ update_plant_property:
       selector:
         select:
           options:
+            # ── Basic Info ──
+            - "Type"
+            - "Location"
+            - "Active"
+            - "Lifecycle"
+            # ── Plant Characteristics ──
+            - "Height"
+            - "Growth per Year"
+            - "Hardiness Zone"
+            # ── Environment ──
+            - "Sun Exposure"
+            - "Soil Type"
+            - "Soil pH"
+            # ── Watering ──
             - "Water Interval (days)"
             - "Last Watered"
             - "Water Amount"
+            # ── Fertilizing ──
             - "Fertilize Interval (days)"
             - "Last Fertilized"
             - "Fertilizer Type"
-            - "Last Pruned"
+            # ── Pruning ──
             - "Prune Months"
+            - "Last Pruned"
             - "Prune Instructions"
-            - "Last Harvested"
+            # ── Harvest ──
             - "Harvest Months"
+            - "Last Harvested"
             - "Harvest Notes"
+            # ── Lawn Care ──
             - "Aeration Interval (days)"
             - "Last Aeration"
             - "Sanding Interval (days)"
             - "Last Sanded"
-            - "Sun Exposure"
+            # ── Companions & Safety ──
             - "Companion Plants"
             - "Bad Companions"
             - "Bee Friendly"
             - "Toxicity"
-            - "Lifecycle"
-            - "Hardiness Zone"
-            - "Soil Type"
-            - "Soil pH"
-            - "Growth per Year"
-            - "Height"
             - "Winterize"
+            # ── Notes ──
             - "Care Instructions"
             - "Special Notes"
             - "Notes"
-            - "Active"
-            - "Type"
-            - "Location"
     property_value:
       name: Property Value
       description: "The value to set. Type is auto-detected: number for integers/floats, true/false for checkbox, YYYY-MM-DD for dates, list for multi-select, otherwise text"

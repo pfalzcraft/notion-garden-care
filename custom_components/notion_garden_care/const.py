@@ -113,176 +113,229 @@ PROPERTY_GROWTH_PER_YEAR = "Growth per Year"
 PROPERTY_HEIGHT = "Height"
 PROPERTY_WINTERIZE = "Winterize"
 
-# All updatable properties (for service dropdown)
+# All updatable properties (for service dropdown) - organized by category
 UPDATABLE_PROPERTIES = [
+    # ── Basic Info ──
+    "Type",
+    "Location",
+    "Active",
+    "Lifecycle",
+    # ── Plant Characteristics ──
+    "Height",
+    "Growth per Year",
+    "Hardiness Zone",
+    # ── Environment ──
+    "Sun Exposure",
+    "Soil Type",
+    "Soil pH",
+    # ── Watering ──
     "Water Interval (days)",
     "Last Watered",
     "Water Amount",
+    # ── Fertilizing ──
     "Fertilize Interval (days)",
     "Last Fertilized",
     "Fertilizer Type",
-    "Last Pruned",
+    # ── Pruning ──
     "Prune Months",
+    "Last Pruned",
     "Prune Instructions",
-    "Last Harvested",
+    # ── Harvest ──
     "Harvest Months",
+    "Last Harvested",
     "Harvest Notes",
+    # ── Lawn Care ──
     "Aeration Interval (days)",
     "Last Aeration",
     "Sanding Interval (days)",
     "Last Sanded",
-    "Sun Exposure",
+    # ── Companions & Safety ──
     "Companion Plants",
     "Bad Companions",
     "Bee Friendly",
     "Toxicity",
-    "Lifecycle",
-    "Hardiness Zone",
-    "Soil Type",
-    "Soil pH",
-    "Growth per Year",
-    "Height",
     "Winterize",
+    # ── Notes ──
     "Care Instructions",
     "Special Notes",
     "Notes",
-    "Active",
-    "Type",
-    "Location",
 ]
 
-# Example Plants
+# Example Plants - properties organized by category
 EXAMPLE_PLANTS = [
     {
+        # ── Basic Info ──
         "Name": "Tomatoes",
         "Type": "Vegetable",
         "Location": "Garden",
         "Active": True,
         "Lifecycle": "Annual",
-        "Hardiness Zone": "10",
-        "Soil Type": "Loamy",
-        "Soil pH": "Neutral (pH 6-7)",
+        # ── Plant Characteristics ──
         "Height": "1-2m (3-6ft)",
         "Growth per Year": "Full growth in one season",
+        "Hardiness Zone": "10",
+        # ── Environment ──
         "Sun Exposure": "Full Sun",
-        "Fertilize Interval (days)": 14,
-        "Fertilizer Type": "Tomato fertilizer, NPK 5-6-8",
+        "Soil Type": "Loamy",
+        "Soil pH": "Neutral (pH 6-7)",
+        # ── Watering ──
         "Water Interval (days)": 2,
         "Water Amount": "High",
+        # ── Fertilizing ──
+        "Fertilize Interval (days)": 14,
+        "Fertilizer Type": "Tomato fertilizer, NPK 5-6-8",
+        # ── Pruning ──
         "Prune Months": ["March", "September"],
         "Prune Instructions": "Remove suckers regularly. Cut back to ground level after harvest.",
+        # ── Harvest ──
         "Harvest Months": ["July", "August", "September"],
         "Harvest Notes": "Pick when fully colored and slightly soft. Harvest regularly to encourage more fruit.",
+        # ── Companions & Safety ──
         "Companion Plants": "Basil, Marigolds, Carrots",
         "Bad Companions": "Brassicas, Fennel, Corn",
         "Bee Friendly": True,
         "Toxicity": "Safe",
+        "Winterize": False,
+        # ── Notes ──
         "Care Instructions": "Fertilize regularly and water sufficiently. Provide support.",
         "Special Notes": "Requires sunny location",
-        "Winterize": False
     },
     {
+        # ── Basic Info ──
         "Name": "Rose Bush",
         "Type": "Plant",
         "Location": "Garden",
         "Active": True,
         "Lifecycle": "Perennial",
-        "Hardiness Zone": "5",
-        "Soil Type": "Loamy",
-        "Soil pH": "Neutral (pH 6-7)",
+        # ── Plant Characteristics ──
         "Height": "1-2m (3-6ft)",
         "Growth per Year": "30-60cm (1-2ft)",
+        "Hardiness Zone": "5",
+        # ── Environment ──
         "Sun Exposure": "Full Sun",
-        "Fertilize Interval (days)": 30,
-        "Fertilizer Type": "Rose fertilizer",
+        "Soil Type": "Loamy",
+        "Soil pH": "Neutral (pH 6-7)",
+        # ── Watering ──
         "Water Interval (days)": 7,
         "Water Amount": "Medium",
+        # ── Fertilizing ──
+        "Fertilize Interval (days)": 30,
+        "Fertilizer Type": "Rose fertilizer",
+        # ── Pruning ──
         "Prune Months": ["February", "March"],
         "Prune Instructions": "Cut back to 3-5 buds in spring. Remove weak and diseased shoots.",
+        # ── Companions & Safety ──
         "Companion Plants": "Lavender, Geraniums, Garlic",
         "Bad Companions": "Buxus, other roses too close",
         "Bee Friendly": True,
         "Toxicity": "Toxic to Pets",
+        "Winterize": True,
+        # ── Notes ──
         "Care Instructions": "Remove spent blooms after flowering",
         "Special Notes": "Frost-sensitive, protect in winter",
-        "Winterize": True
     },
     {
+        # ── Basic Info ──
         "Name": "Apple Tree",
         "Type": "Tree",
         "Location": "Garden",
         "Active": True,
         "Lifecycle": "Perennial",
-        "Hardiness Zone": "4",
-        "Soil Type": "Loamy",
-        "Soil pH": "Neutral (pH 6-7)",
+        # ── Plant Characteristics ──
         "Height": "3-5m (10-16ft)",
         "Growth per Year": "30-60cm (1-2ft)",
+        "Hardiness Zone": "4",
+        # ── Environment ──
         "Sun Exposure": "Full Sun",
-        "Fertilize Interval (days)": 90,
-        "Fertilizer Type": "Fruit tree fertilizer",
+        "Soil Type": "Loamy",
+        "Soil pH": "Neutral (pH 6-7)",
+        # ── Watering ──
         "Water Interval (days)": 14,
         "Water Amount": "High",
+        # ── Fertilizing ──
+        "Fertilize Interval (days)": 90,
+        "Fertilizer Type": "Fruit tree fertilizer",
+        # ── Pruning ──
         "Prune Months": ["February", "March"],
         "Prune Instructions": "Thinning cut: Remove diseased, inward-growing and crossing branches.",
+        # ── Harvest ──
         "Harvest Months": ["September", "October"],
         "Harvest Notes": "Apples are ready when they come off easily with a gentle twist.",
+        # ── Companions & Safety ──
         "Companion Plants": "Chives, Nasturtiums, Clover",
         "Bad Companions": "Walnut, Grass close to trunk",
         "Bee Friendly": True,
         "Toxicity": "Safe (seeds contain cyanide - don't eat in large quantities)",
+        "Winterize": False,
+        # ── Notes ──
         "Care Instructions": "Check regularly for pests",
         "Special Notes": "Needs pollinator nearby",
-        "Winterize": False
     },
     {
+        # ── Basic Info ──
         "Name": "Basil",
         "Type": "Herb",
         "Location": "Balcony",
         "Active": True,
         "Lifecycle": "Annual",
-        "Hardiness Zone": "10",
-        "Soil Type": "Loamy",
-        "Soil pH": "Neutral (pH 6-7)",
+        # ── Plant Characteristics ──
         "Height": "30-60cm (1-2ft)",
         "Growth per Year": "Full growth in one season",
+        "Hardiness Zone": "10",
+        # ── Environment ──
         "Sun Exposure": "Full Sun",
-        "Fertilize Interval (days)": 21,
-        "Fertilizer Type": "Liquid fertilizer for herbs",
+        "Soil Type": "Loamy",
+        "Soil pH": "Neutral (pH 6-7)",
+        # ── Watering ──
         "Water Interval (days)": 3,
         "Water Amount": "Medium",
+        # ── Fertilizing ──
+        "Fertilize Interval (days)": 21,
+        "Fertilizer Type": "Liquid fertilizer for herbs",
+        # ── Pruning ──
         "Prune Months": ["May", "June", "July", "August"],
         "Prune Instructions": "Harvest leaves regularly to encourage branching. Remove flowers.",
+        # ── Harvest ──
         "Harvest Months": ["June", "July", "August", "September"],
         "Harvest Notes": "Pick leaves in the morning for best flavor. Use fresh or dry for storage.",
+        # ── Companions & Safety ──
         "Companion Plants": "Tomatoes, Peppers",
         "Bad Companions": "Sage, Rue",
         "Bee Friendly": True,
         "Toxicity": "Safe",
+        "Winterize": False,
+        # ── Notes ──
         "Care Instructions": "Keep warm and sunny, not too wet",
         "Special Notes": "Not winter-hardy, harvest in autumn",
-        "Winterize": False
     },
     {
+        # ── Basic Info ──
         "Name": "Lawn",
         "Type": "Lawn",
         "Location": "Garden",
         "Active": True,
         "Lifecycle": "Perennial",
-        "Hardiness Zone": "3",
-        "Soil Type": "Loamy",
-        "Soil pH": "Neutral (pH 6-7)",
+        # ── Plant Characteristics ──
         "Height": "5-10cm (2-4in)",
         "Growth per Year": "Continuous growth during season",
+        "Hardiness Zone": "3",
+        # ── Environment ──
         "Sun Exposure": "Partial Sun",
-        "Fertilize Interval (days)": 60,
-        "Fertilizer Type": "Lawn fertilizer, NPK 20-5-10",
+        "Soil Type": "Loamy",
+        "Soil pH": "Neutral (pH 6-7)",
+        # ── Watering ──
         "Water Interval (days)": 3,
         "Water Amount": "Medium",
+        # ── Fertilizing ──
+        "Fertilize Interval (days)": 60,
+        "Fertilizer Type": "Lawn fertilizer, NPK 20-5-10",
+        # ── Lawn Care ──
         "Aeration Interval (days)": 365,
         "Sanding Interval (days)": 365,
+        # ── Companions & Safety ──
+        "Winterize": False,
+        # ── Notes ──
         "Care Instructions": "Mow regularly, keep at 3-4 inches height. Water deeply but infrequently.",
         "Special Notes": "Aerate and sand annually in spring or fall. Overseed bare patches.",
-        "Winterize": False
     }
 ]

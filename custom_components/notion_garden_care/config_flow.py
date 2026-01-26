@@ -151,6 +151,9 @@ def _create_database_sync(notion: Client, parent_page_id: str) -> dict:
         title=[{"type": "text", "text": {"content": "Garden Care"}}],
         initial_data_source={
             "properties": {
+            # ══════════════════════════════════════════════════════════════
+            # BASIC INFO
+            # ══════════════════════════════════════════════════════════════
             "Name": {"type": "title", "title": {}},
             "Type": {
                 "type": "select",
@@ -171,72 +174,6 @@ def _create_database_sync(notion: Client, parent_page_id: str) -> dict:
                 }
             },
             "Active": {"type": "checkbox", "checkbox": {}},
-            "Fertilize Interval (days)": {"type": "number", "number": {"format": "number"}},
-            "Last Fertilized": {"type": "date", "date": {}},
-            "Next Fertilize": {
-                "type": "formula",
-                "formula": {
-                    "expression": 'dateAdd(prop("Last Fertilized"), prop("Fertilize Interval (days)"), "days")'
-                }
-            },
-            "Fertilizer Type": {"type": "rich_text", "rich_text": {}},
-            "Water Interval (days)": {"type": "number", "number": {"format": "number"}},
-            "Last Watered": {"type": "date", "date": {}},
-            "Next Water": {
-                "type": "formula",
-                "formula": {
-                    "expression": 'dateAdd(prop("Last Watered"), prop("Water Interval (days)"), "days")'
-                }
-            },
-            "Water Amount": {
-                "type": "select",
-                "select": {
-                    "options": [{"name": w, "color": c} for w, c in zip(
-                        WATER_AMOUNTS,
-                        ["yellow", "blue", "blue"]
-                    )]
-                }
-            },
-            "Prune Months": {
-                "type": "multi_select",
-                "multi_select": {
-                    "options": [{"name": m, "color": _get_month_color(i)} for i, m in enumerate(MONTHS)]
-                }
-            },
-            "Prune Instructions": {"type": "rich_text", "rich_text": {}},
-            "Last Pruned": {"type": "date", "date": {}},
-            # Harvest & Growth
-            "Harvest Months": {
-                "type": "multi_select",
-                "multi_select": {
-                    "options": [{"name": m, "color": _get_month_color(i)} for i, m in enumerate(MONTHS)]
-                }
-            },
-            "Harvest Notes": {"type": "rich_text", "rich_text": {}},
-            "Last Harvested": {"type": "date", "date": {}},
-            "Sun Exposure": {
-                "type": "select",
-                "select": {
-                    "options": [{"name": s, "color": c} for s, c in zip(
-                        SUN_EXPOSURE,
-                        ["yellow", "yellow", "blue", "gray"]
-                    )]
-                }
-            },
-            # Companion Planting & Safety
-            "Companion Plants": {"type": "rich_text", "rich_text": {}},
-            "Bad Companions": {"type": "rich_text", "rich_text": {}},
-            "Bee Friendly": {"type": "checkbox", "checkbox": {}},
-            "Toxicity": {
-                "type": "select",
-                "select": {
-                    "options": [{"name": t, "color": c} for t, c in zip(
-                        TOXICITY,
-                        ["green", "orange", "orange", "red"]
-                    )]
-                }
-            },
-            # Plant Characteristics
             "Lifecycle": {
                 "type": "select",
                 "select": {
@@ -246,10 +183,27 @@ def _create_database_sync(notion: Client, parent_page_id: str) -> dict:
                     )]
                 }
             },
+            # ══════════════════════════════════════════════════════════════
+            # PLANT CHARACTERISTICS
+            # ══════════════════════════════════════════════════════════════
+            "Height": {"type": "rich_text", "rich_text": {}},
+            "Growth per Year": {"type": "rich_text", "rich_text": {}},
             "Hardiness Zone": {
                 "type": "select",
                 "select": {
                     "options": [{"name": z, "color": "blue"} for z in HARDINESS_ZONES]
+                }
+            },
+            # ══════════════════════════════════════════════════════════════
+            # ENVIRONMENT REQUIREMENTS
+            # ══════════════════════════════════════════════════════════════
+            "Sun Exposure": {
+                "type": "select",
+                "select": {
+                    "options": [{"name": s, "color": c} for s, c in zip(
+                        SUN_EXPOSURE,
+                        ["yellow", "yellow", "blue", "gray"]
+                    )]
                 }
             },
             "Soil Type": {
@@ -270,10 +224,63 @@ def _create_database_sync(notion: Client, parent_page_id: str) -> dict:
                     )]
                 }
             },
-            "Height": {"type": "rich_text", "rich_text": {}},
-            "Growth per Year": {"type": "rich_text", "rich_text": {}},
-            "Winterize": {"type": "checkbox", "checkbox": {}},
-            # Lawn Care (Aeration)
+            # ══════════════════════════════════════════════════════════════
+            # WATERING
+            # ══════════════════════════════════════════════════════════════
+            "Water Interval (days)": {"type": "number", "number": {"format": "number"}},
+            "Last Watered": {"type": "date", "date": {}},
+            "Next Water": {
+                "type": "formula",
+                "formula": {
+                    "expression": 'dateAdd(prop("Last Watered"), prop("Water Interval (days)"), "days")'
+                }
+            },
+            "Water Amount": {
+                "type": "select",
+                "select": {
+                    "options": [{"name": w, "color": c} for w, c in zip(
+                        WATER_AMOUNTS,
+                        ["yellow", "blue", "blue"]
+                    )]
+                }
+            },
+            # ══════════════════════════════════════════════════════════════
+            # FERTILIZING
+            # ══════════════════════════════════════════════════════════════
+            "Fertilize Interval (days)": {"type": "number", "number": {"format": "number"}},
+            "Last Fertilized": {"type": "date", "date": {}},
+            "Next Fertilize": {
+                "type": "formula",
+                "formula": {
+                    "expression": 'dateAdd(prop("Last Fertilized"), prop("Fertilize Interval (days)"), "days")'
+                }
+            },
+            "Fertilizer Type": {"type": "rich_text", "rich_text": {}},
+            # ══════════════════════════════════════════════════════════════
+            # PRUNING
+            # ══════════════════════════════════════════════════════════════
+            "Prune Months": {
+                "type": "multi_select",
+                "multi_select": {
+                    "options": [{"name": m, "color": _get_month_color(i)} for i, m in enumerate(MONTHS)]
+                }
+            },
+            "Last Pruned": {"type": "date", "date": {}},
+            "Prune Instructions": {"type": "rich_text", "rich_text": {}},
+            # ══════════════════════════════════════════════════════════════
+            # HARVEST
+            # ══════════════════════════════════════════════════════════════
+            "Harvest Months": {
+                "type": "multi_select",
+                "multi_select": {
+                    "options": [{"name": m, "color": _get_month_color(i)} for i, m in enumerate(MONTHS)]
+                }
+            },
+            "Last Harvested": {"type": "date", "date": {}},
+            "Harvest Notes": {"type": "rich_text", "rich_text": {}},
+            # ══════════════════════════════════════════════════════════════
+            # LAWN CARE
+            # ══════════════════════════════════════════════════════════════
             "Aeration Interval (days)": {"type": "number", "number": {"format": "number"}},
             "Last Aeration": {"type": "date", "date": {}},
             "Next Aeration": {
@@ -282,7 +289,6 @@ def _create_database_sync(notion: Client, parent_page_id: str) -> dict:
                     "expression": 'dateAdd(prop("Last Aeration"), prop("Aeration Interval (days)"), "days")'
                 }
             },
-            # Lawn Care (Sanding)
             "Sanding Interval (days)": {"type": "number", "number": {"format": "number"}},
             "Last Sanded": {"type": "date", "date": {}},
             "Next Sanding": {
@@ -291,7 +297,25 @@ def _create_database_sync(notion: Client, parent_page_id: str) -> dict:
                     "expression": 'dateAdd(prop("Last Sanded"), prop("Sanding Interval (days)"), "days")'
                 }
             },
-            # General Care & Notes
+            # ══════════════════════════════════════════════════════════════
+            # COMPANIONS & SAFETY
+            # ══════════════════════════════════════════════════════════════
+            "Companion Plants": {"type": "rich_text", "rich_text": {}},
+            "Bad Companions": {"type": "rich_text", "rich_text": {}},
+            "Bee Friendly": {"type": "checkbox", "checkbox": {}},
+            "Toxicity": {
+                "type": "select",
+                "select": {
+                    "options": [{"name": t, "color": c} for t, c in zip(
+                        TOXICITY,
+                        ["green", "orange", "orange", "red"]
+                    )]
+                }
+            },
+            "Winterize": {"type": "checkbox", "checkbox": {}},
+            # ══════════════════════════════════════════════════════════════
+            # NOTES
+            # ══════════════════════════════════════════════════════════════
             "Care Instructions": {"type": "rich_text", "rich_text": {}},
             "Special Notes": {"type": "rich_text", "rich_text": {}},
             "Notes": {"type": "rich_text", "rich_text": {}}
