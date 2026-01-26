@@ -537,70 +537,151 @@ class PlantSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """Return the state attributes with all plant details."""
+        """Return the state attributes with all plant details in organized order."""
         plant_data = self._get_current_plant_data()
         if not plant_data:
             return {}
 
+        properties = plant_data.get("properties", {})
+
+        # Define the ordered list of properties by category
+        ordered_properties = [
+            # ── Basic Info ──
+            "Name",
+            "Type",
+            "Location",
+            "Active",
+            "Lifecycle",
+            # ── Plant Characteristics ──
+            "Height",
+            "Growth per Year",
+            "Hardiness Zone",
+            # ── Environment ──
+            "Sun Exposure",
+            "Soil Type",
+            "Soil pH",
+            # ── Watering ──
+            "Water Interval (days)",
+            "Last Watered",
+            "Next Water",
+            "Water Amount",
+            # ── Fertilizing ──
+            "Fertilize Interval (days)",
+            "Last Fertilized",
+            "Next Fertilize",
+            "Fertilizer Type",
+            # ── Pruning ──
+            "Prune Months",
+            "Last Pruned",
+            "Prune Instructions",
+            # ── Harvest ──
+            "Harvest Months",
+            "Last Harvested",
+            "Harvest Notes",
+            # ── Lawn Care ──
+            "Aeration Interval (days)",
+            "Last Aeration",
+            "Next Aeration",
+            "Sanding Interval (days)",
+            "Last Sanded",
+            "Next Sanding",
+            # ── Companions & Safety ──
+            "Companion Plants",
+            "Bad Companions",
+            "Bee Friendly",
+            "Toxicity",
+            "Winterize",
+            # ── Notes ──
+            "Care Instructions",
+            "Special Notes",
+            "Notes",
+        ]
+
+        # Start with page_id and plant_name
         attributes = {
             "page_id": self._page_id,
             "plant_name": self._plant_name,
         }
 
-        properties = plant_data.get("properties", {})
+        # Extract properties in the defined order
+        for prop_name in ordered_properties:
+            if prop_name not in properties:
+                continue
 
-        # Extract all properties
-        for prop_name, prop_value in properties.items():
+            prop_value = properties[prop_name]
             attr_name = prop_name.lower().replace(" ", "_").replace("(", "").replace(")", "")
 
             try:
-                prop_type = prop_value.get("type")
+                extracted_value = self._extract_property_value(prop_value)
+                if extracted_value is not None:
+                    attributes[attr_name] = extracted_value
+            except (KeyError, TypeError, IndexError):
+                continue
 
-                if prop_type == "title":
-                    if prop_value.get("title") and len(prop_value["title"]) > 0:
-                        attributes[attr_name] = prop_value["title"][0].get("plain_text")
+        # Add any remaining properties not in our ordered list (at the end)
+        for prop_name, prop_value in properties.items():
+            if prop_name in ordered_properties:
+                continue
 
-                elif prop_type == "rich_text":
-                    if prop_value.get("rich_text") and len(prop_value["rich_text"]) > 0:
-                        attributes[attr_name] = prop_value["rich_text"][0].get("plain_text")
+            attr_name = prop_name.lower().replace(" ", "_").replace("(", "").replace(")", "")
+            if attr_name in attributes:
+                continue
 
-                elif prop_type == "number":
-                    attributes[attr_name] = prop_value.get("number")
-
-                elif prop_type == "select":
-                    if prop_value.get("select"):
-                        attributes[attr_name] = prop_value["select"].get("name")
-
-                elif prop_type == "multi_select":
-                    if prop_value.get("multi_select"):
-                        attributes[attr_name] = [m["name"] for m in prop_value["multi_select"]]
-
-                elif prop_type == "checkbox":
-                    attributes[attr_name] = prop_value.get("checkbox", False)
-
-                elif prop_type == "date":
-                    if prop_value.get("date"):
-                        date_obj = prop_value["date"]
-                        attributes[attr_name] = date_obj.get("start") if isinstance(date_obj, dict) else date_obj
-
-                elif prop_type == "formula":
-                    formula_data = prop_value.get("formula", {})
-                    formula_type = formula_data.get("type")
-                    if formula_type == "date":
-                        date_obj = formula_data.get("date")
-                        if date_obj:
-                            attributes[attr_name] = date_obj.get("start") if isinstance(date_obj, dict) else date_obj
-                    elif formula_type == "string":
-                        attributes[attr_name] = formula_data.get("string")
-                    elif formula_type == "number":
-                        attributes[attr_name] = formula_data.get("number")
-                    elif formula_type == "boolean":
-                        attributes[attr_name] = formula_data.get("boolean")
-
+            try:
+                extracted_value = self._extract_property_value(prop_value)
+                if extracted_value is not None:
+                    attributes[attr_name] = extracted_value
             except (KeyError, TypeError, IndexError):
                 continue
 
         return attributes
+
+    def _extract_property_value(self, prop_value: dict) -> Any:
+        """Extract the value from a Notion property based on its type."""
+        prop_type = prop_value.get("type")
+
+        if prop_type == "title":
+            if prop_value.get("title") and len(prop_value["title"]) > 0:
+                return prop_value["title"][0].get("plain_text")
+
+        elif prop_type == "rich_text":
+            if prop_value.get("rich_text") and len(prop_value["rich_text"]) > 0:
+                return prop_value["rich_text"][0].get("plain_text")
+
+        elif prop_type == "number":
+            return prop_value.get("number")
+
+        elif prop_type == "select":
+            if prop_value.get("select"):
+                return prop_value["select"].get("name")
+
+        elif prop_type == "multi_select":
+            if prop_value.get("multi_select"):
+                return [m["name"] for m in prop_value["multi_select"]]
+
+        elif prop_type == "checkbox":
+            return prop_value.get("checkbox", False)
+
+        elif prop_type == "date":
+            if prop_value.get("date"):
+                date_obj = prop_value["date"]
+                return date_obj.get("start") if isinstance(date_obj, dict) else date_obj
+
+        elif prop_type == "formula":
+            formula_data = prop_value.get("formula", {})
+            formula_type = formula_data.get("type")
+            if formula_type == "date":
+                date_obj = formula_data.get("date")
+                if date_obj:
+                    return date_obj.get("start") if isinstance(date_obj, dict) else date_obj
+            elif formula_type == "string":
+                return formula_data.get("string")
+            elif formula_type == "number":
+                return formula_data.get("number")
+            elif formula_type == "boolean":
+                return formula_data.get("boolean")
+
+        return None
 
     @property
     def icon(self) -> str:
