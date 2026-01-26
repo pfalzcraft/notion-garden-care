@@ -21,9 +21,15 @@ from .const import (
     SERVICE_UPDATE_WATERED,
     SERVICE_UPDATE_FERTILIZED,
     SERVICE_UPDATE_PRUNED,
+    SERVICE_UPDATE_AERATED,
+    SERVICE_UPDATE_HARVESTED,
+    SERVICE_UPDATE_PROPERTY,
     SERVICE_REFRESH_DATA,
     ATTR_PAGE_ID,
     ATTR_PLANT_NAME,
+    ATTR_PROPERTY_NAME,
+    ATTR_PROPERTY_VALUE,
+    ATTR_DATE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -34,6 +40,16 @@ UPDATE_SERVICE_SCHEMA = vol.Schema(
     {
         vol.Optional(ATTR_PAGE_ID): cv.string,
         vol.Optional(ATTR_PLANT_NAME): cv.string,
+        vol.Optional(ATTR_DATE): cv.string,
+    }
+)
+
+UPDATE_PROPERTY_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_PAGE_ID): cv.string,
+        vol.Optional(ATTR_PLANT_NAME): cv.string,
+        vol.Required(ATTR_PROPERTY_NAME): cv.string,
+        vol.Required(ATTR_PROPERTY_VALUE): vol.Any(str, int, float, bool, list),
     }
 )
 
@@ -83,7 +99,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 _LOGGER.error("Plant '%s' not found", plant_name)
                 return
 
-        await _update_date_property(hass, entry.entry_id, page_id, "Last Watered")
+        await _update_date_property(hass, entry.entry_id, page_id, "Last Watered", call.data.get(ATTR_DATE))
 
     async def handle_update_fertilized(call: ServiceCall) -> None:
         """Handle mark as fertilized service."""
@@ -100,7 +116,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 _LOGGER.error("Plant '%s' not found", plant_name)
                 return
 
-        await _update_date_property(hass, entry.entry_id, page_id, "Last Fertilized")
+        await _update_date_property(hass, entry.entry_id, page_id, "Last Fertilized", call.data.get(ATTR_DATE))
 
     async def handle_update_pruned(call: ServiceCall) -> None:
         """Handle mark as pruned service."""
@@ -117,7 +133,60 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 _LOGGER.error("Plant '%s' not found", plant_name)
                 return
 
-        await _update_date_property(hass, entry.entry_id, page_id, "Last Pruned")
+        await _update_date_property(hass, entry.entry_id, page_id, "Last Pruned", call.data.get(ATTR_DATE))
+
+    async def handle_update_aerated(call: ServiceCall) -> None:
+        """Handle mark as aerated service (for lawns)."""
+        page_id = call.data.get(ATTR_PAGE_ID)
+        plant_name = call.data.get(ATTR_PLANT_NAME)
+
+        if not page_id and not plant_name:
+            _LOGGER.error("Either page_id or plant_name must be provided")
+            return
+
+        if plant_name:
+            page_id = await _find_page_by_name(hass, entry.entry_id, plant_name)
+            if not page_id:
+                _LOGGER.error("Plant '%s' not found", plant_name)
+                return
+
+        await _update_date_property(hass, entry.entry_id, page_id, "Last Aeration", call.data.get(ATTR_DATE))
+
+    async def handle_update_harvested(call: ServiceCall) -> None:
+        """Handle mark as harvested service."""
+        page_id = call.data.get(ATTR_PAGE_ID)
+        plant_name = call.data.get(ATTR_PLANT_NAME)
+
+        if not page_id and not plant_name:
+            _LOGGER.error("Either page_id or plant_name must be provided")
+            return
+
+        if plant_name:
+            page_id = await _find_page_by_name(hass, entry.entry_id, plant_name)
+            if not page_id:
+                _LOGGER.error("Plant '%s' not found", plant_name)
+                return
+
+        await _update_date_property(hass, entry.entry_id, page_id, "Last Harvested", call.data.get(ATTR_DATE))
+
+    async def handle_update_property(call: ServiceCall) -> None:
+        """Handle generic property update service."""
+        page_id = call.data.get(ATTR_PAGE_ID)
+        plant_name = call.data.get(ATTR_PLANT_NAME)
+        property_name = call.data.get(ATTR_PROPERTY_NAME)
+        property_value = call.data.get(ATTR_PROPERTY_VALUE)
+
+        if not page_id and not plant_name:
+            _LOGGER.error("Either page_id or plant_name must be provided")
+            return
+
+        if plant_name:
+            page_id = await _find_page_by_name(hass, entry.entry_id, plant_name)
+            if not page_id:
+                _LOGGER.error("Plant '%s' not found", plant_name)
+                return
+
+        await _update_generic_property(hass, entry.entry_id, page_id, property_name, property_value)
 
     async def handle_refresh_data(call: ServiceCall) -> None:
         """Handle refresh database service."""
@@ -140,6 +209,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         DOMAIN, SERVICE_UPDATE_PRUNED, handle_update_pruned, schema=UPDATE_SERVICE_SCHEMA
     )
     hass.services.async_register(
+        DOMAIN, SERVICE_UPDATE_AERATED, handle_update_aerated, schema=UPDATE_SERVICE_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_UPDATE_HARVESTED, handle_update_harvested, schema=UPDATE_SERVICE_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_UPDATE_PROPERTY, handle_update_property, schema=UPDATE_PROPERTY_SCHEMA
+    )
+    hass.services.async_register(
         DOMAIN, SERVICE_REFRESH_DATA, handle_refresh_data
     )
 
@@ -156,6 +234,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.services.async_remove(DOMAIN, SERVICE_UPDATE_WATERED)
         hass.services.async_remove(DOMAIN, SERVICE_UPDATE_FERTILIZED)
         hass.services.async_remove(DOMAIN, SERVICE_UPDATE_PRUNED)
+        hass.services.async_remove(DOMAIN, SERVICE_UPDATE_AERATED)
+        hass.services.async_remove(DOMAIN, SERVICE_UPDATE_HARVESTED)
+        hass.services.async_remove(DOMAIN, SERVICE_UPDATE_PROPERTY)
         hass.services.async_remove(DOMAIN, SERVICE_REFRESH_DATA)
 
     return unload_ok
@@ -194,11 +275,17 @@ async def _update_date_property(
     hass: HomeAssistant,
     entry_id: str,
     page_id: str,
-    property_name: str
+    property_name: str,
+    date_value: str | None = None
 ) -> None:
     """Update a date property in Notion."""
     notion = hass.data[DOMAIN][entry_id]["notion"]
-    today = datetime.now().strftime("%Y-%m-%d")
+
+    # Use provided date or default to today
+    if date_value:
+        date_to_set = date_value
+    else:
+        date_to_set = datetime.now().strftime("%Y-%m-%d")
 
     try:
         await hass.async_add_executor_job(
@@ -208,13 +295,13 @@ async def _update_date_property(
                 "properties": {
                     property_name: {
                         "date": {
-                            "start": today
+                            "start": date_to_set
                         }
                     }
                 }
             }
         )
-        _LOGGER.info("Updated %s for page %s", property_name, page_id)
+        _LOGGER.info("Updated %s to %s for page %s", property_name, date_to_set, page_id)
 
         # Trigger sensor refresh
         coordinator = hass.data[DOMAIN][entry_id].get("coordinator")
@@ -223,3 +310,52 @@ async def _update_date_property(
 
     except APIResponseError as err:
         _LOGGER.error("Failed to update property: %s", err)
+
+
+async def _update_generic_property(
+    hass: HomeAssistant,
+    entry_id: str,
+    page_id: str,
+    property_name: str,
+    property_value: str | int | float | bool | list
+) -> None:
+    """Update any property in Notion based on value type."""
+    notion = hass.data[DOMAIN][entry_id]["notion"]
+
+    # Determine property format based on value type
+    if isinstance(property_value, bool):
+        property_data = {"checkbox": property_value}
+    elif isinstance(property_value, (int, float)):
+        property_data = {"number": property_value}
+    elif isinstance(property_value, list):
+        # Assume it's a multi-select
+        property_data = {"multi_select": [{"name": str(v)} for v in property_value]}
+    elif isinstance(property_value, str):
+        # Try to detect if it's a date (YYYY-MM-DD format)
+        if len(property_value) == 10 and property_value[4] == "-" and property_value[7] == "-":
+            property_data = {"date": {"start": property_value}}
+        else:
+            # Assume it's rich_text
+            property_data = {"rich_text": [{"text": {"content": property_value}}]}
+    else:
+        property_data = {"rich_text": [{"text": {"content": str(property_value)}}]}
+
+    try:
+        await hass.async_add_executor_job(
+            notion.pages.update,
+            page_id,
+            {
+                "properties": {
+                    property_name: property_data
+                }
+            }
+        )
+        _LOGGER.info("Updated %s to %s for page %s", property_name, property_value, page_id)
+
+        # Trigger sensor refresh
+        coordinator = hass.data[DOMAIN][entry_id].get("coordinator")
+        if coordinator:
+            await coordinator.async_request_refresh()
+
+    except APIResponseError as err:
+        _LOGGER.error("Failed to update property %s: %s", property_name, err)

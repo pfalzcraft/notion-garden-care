@@ -21,11 +21,17 @@ SCAN_INTERVAL = 3600  # 1 hour
 SERVICE_UPDATE_WATERED = "mark_as_watered"
 SERVICE_UPDATE_FERTILIZED = "mark_as_fertilized"
 SERVICE_UPDATE_PRUNED = "mark_as_pruned"
+SERVICE_UPDATE_AERATED = "mark_as_aerated"
+SERVICE_UPDATE_HARVESTED = "mark_as_harvested"
+SERVICE_UPDATE_PROPERTY = "update_plant_property"
 SERVICE_REFRESH_DATA = "refresh_database"
 
 # Attributes
 ATTR_PAGE_ID = "page_id"
 ATTR_PLANT_NAME = "plant_name"
+ATTR_PROPERTY_NAME = "property_name"
+ATTR_PROPERTY_VALUE = "property_value"
+ATTR_DATE = "date"
 
 # Database Properties
 PROPERTY_NAME = "Name"

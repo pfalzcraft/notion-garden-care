@@ -16,6 +16,12 @@ mark_as_watered:
       example: "Tomatoes"
       selector:
         text:
+    date:
+      name: Date
+      description: The date to set (optional, defaults to today). Format YYYY-MM-DD
+      example: "2026-01-25"
+      selector:
+        date:
 
 mark_as_fertilized:
   name: Mark Plant as Fertilized
@@ -33,6 +39,12 @@ mark_as_fertilized:
       example: "Rose Bush"
       selector:
         text:
+    date:
+      name: Date
+      description: The date to set (optional, defaults to today). Format YYYY-MM-DD
+      example: "2026-01-25"
+      selector:
+        date:
 
 mark_as_pruned:
   name: Mark Plant as Pruned
@@ -48,6 +60,89 @@ mark_as_pruned:
       name: Plant Name
       description: The name of the plant (optional if page_id is provided)
       example: "Apple Tree"
+      selector:
+        text:
+    date:
+      name: Date
+      description: The date to set (optional, defaults to today). Format YYYY-MM-DD
+      example: "2026-01-25"
+      selector:
+        date:
+
+mark_as_aerated:
+  name: Mark Lawn as Aerated
+  description: Updates the "Last Aeration" date in Notion for a lawn
+  fields:
+    page_id:
+      name: Page ID
+      description: The Notion page ID of the lawn (optional if plant_name is provided)
+      example: "1234567890abcdef"
+      selector:
+        text:
+    plant_name:
+      name: Plant Name
+      description: The name of the lawn (optional if page_id is provided)
+      example: "Lawn"
+      selector:
+        text:
+    date:
+      name: Date
+      description: The date to set (optional, defaults to today). Format YYYY-MM-DD
+      example: "2026-01-25"
+      selector:
+        date:
+
+mark_as_harvested:
+  name: Mark Plant as Harvested
+  description: Updates the "Last Harvested" date in Notion for a plant
+  fields:
+    page_id:
+      name: Page ID
+      description: The Notion page ID of the plant (optional if plant_name is provided)
+      example: "1234567890abcdef"
+      selector:
+        text:
+    plant_name:
+      name: Plant Name
+      description: The name of the plant (optional if page_id is provided)
+      example: "Tomatoes"
+      selector:
+        text:
+    date:
+      name: Date
+      description: The date to set (optional, defaults to today). Format YYYY-MM-DD
+      example: "2026-01-25"
+      selector:
+        date:
+
+update_plant_property:
+  name: Update Plant Property
+  description: Updates any property in Notion for a plant. Supports text, number, checkbox, date, and multi-select values.
+  fields:
+    page_id:
+      name: Page ID
+      description: The Notion page ID of the plant (optional if plant_name is provided)
+      example: "1234567890abcdef"
+      selector:
+        text:
+    plant_name:
+      name: Plant Name
+      description: The name of the plant (optional if page_id is provided)
+      example: "Tomatoes"
+      selector:
+        text:
+    property_name:
+      name: Property Name
+      description: The exact name of the Notion property to update
+      example: "Water Interval (days)"
+      required: true
+      selector:
+        text:
+    property_value:
+      name: Property Value
+      description: "The value to set. Type is auto-detected: number for integers/floats, true/false for checkbox, YYYY-MM-DD for dates, list for multi-select, otherwise text"
+      example: "7"
+      required: true
       selector:
         text:
 

@@ -155,13 +155,19 @@ Understanding when plants appear in each sensor:
 
 ### Services
 
-Update your plants from Home Assistant:
+Update your plants from Home Assistant (7 services available):
 
 ```yaml
-# Mark plant as watered
+# Mark plant as watered (today)
 service: notion_garden_care.mark_as_watered
 data:
   plant_name: "Tomatoes"
+
+# Mark plant as watered on a specific date
+service: notion_garden_care.mark_as_watered
+data:
+  plant_name: "Tomatoes"
+  date: "2026-01-20"
 
 # Mark plant as fertilized
 service: notion_garden_care.mark_as_fertilized
@@ -173,9 +179,38 @@ service: notion_garden_care.mark_as_pruned
 data:
   plant_name: "Apple Tree"
 
+# Mark plant as harvested
+service: notion_garden_care.mark_as_harvested
+data:
+  plant_name: "Tomatoes"
+
+# Mark lawn as aerated
+service: notion_garden_care.mark_as_aerated
+data:
+  plant_name: "Lawn"
+
+# Update any property (generic service)
+service: notion_garden_care.update_plant_property
+data:
+  plant_name: "Tomatoes"
+  property_name: "Water Interval (days)"
+  property_value: "5"
+
 # Refresh data from Notion
 service: notion_garden_care.refresh_database
 ```
+
+#### Service Parameters
+
+All `mark_as_*` services accept:
+- `plant_name` (string) - Name of the plant (or)
+- `page_id` (string) - Notion page ID
+- `date` (optional) - Date in YYYY-MM-DD format (defaults to today)
+
+The `update_plant_property` service accepts:
+- `plant_name` or `page_id` - To identify the plant
+- `property_name` (required) - Exact Notion property name
+- `property_value` (required) - Value to set (auto-detects type: number, checkbox, date, multi-select, or text)
 
 ### Automation Blueprints
 
