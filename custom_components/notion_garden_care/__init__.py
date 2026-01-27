@@ -138,89 +138,76 @@ async def _async_register_frontend(hass: HomeAssistant) -> None:
 
 
 async def _async_create_dashboard(hass: HomeAssistant) -> None:
-    """Create the Garden Care dashboard if it doesn't exist."""
+    """Create the Garden Care dashboard with strategy if it doesn't exist."""
     if hass.data[DOMAIN].get("dashboard_created"):
         return
 
     try:
-        # Use the lovelace/dashboards/create WebSocket API via hass.services
-        from homeassistant.components.lovelace import DOMAIN as LOVELACE_DOMAIN
-        from homeassistant.components.lovelace.const import MODE_STORAGE
+        import os
 
-        # Check if dashboard already exists in storage
-        lovelace_data = hass.data.get(LOVELACE_DOMAIN, {})
-        dashboards = lovelace_data.get("dashboards", {})
-
-        if "garden-care" in dashboards:
-            _LOGGER.debug("Garden Care dashboard already exists")
-            hass.data[DOMAIN]["dashboard_created"] = True
-            return
-
-        # Try to create dashboard via websocket command
-        from homeassistant.components.lovelace.dashboard import LovelaceStorage
-        from homeassistant.components.lovelace import dashboard
-
-        # Create dashboard config
-        config_data = {
-            "url_path": "garden-care",
-            "mode": MODE_STORAGE,
-            "title": "Garden Care",
-            "icon": "mdi:flower",
-            "show_in_sidebar": True,
-            "require_admin": False,
-        }
-
-        # Access the dashboards collection
-        if hasattr(lovelace_data, "dashboards") and hasattr(lovelace_data.dashboards, "async_create_item"):
-            await lovelace_data.dashboards.async_create_item(config_data)
-            _LOGGER.info("Created Garden Care dashboard via collection")
-        else:
-            # Fallback: Write dashboard config to .storage
-            storage_path = hass.config.path(".storage/lovelace_dashboards")
-            import json
-            import os
-
-            # Read existing dashboards
-            dashboards_data = {"version": 1, "minor_version": 1, "key": "lovelace_dashboards", "data": {"items": []}}
-            if os.path.exists(storage_path):
-                with open(storage_path, "r") as f:
-                    dashboards_data = json.load(f)
-
-            # Check if already exists
-            items = dashboards_data.get("data", {}).get("items", [])
-            if not any(item.get("url_path") == "garden-care" for item in items):
-                items.append({
-                    "id": "garden_care",
-                    "url_path": "garden-care",
-                    "mode": "storage",
-                    "title": "Garden Care",
-                    "icon": "mdi:flower",
-                    "show_in_sidebar": True,
-                    "require_admin": False,
-                })
-                dashboards_data["data"]["items"] = items
-
-                with open(storage_path, "w") as f:
-                    json.dump(dashboards_data, f, indent=2)
-                _LOGGER.info("Created Garden Care dashboard in storage")
-
-                # Also create the dashboard config with strategy
-                dashboard_config_path = hass.config.path(".storage/lovelace.garden-care")
-                dashboard_config = {
-                    "version": 1,
-                    "minor_version": 1,
-                    "key": "lovelace.garden-care",
-                    "data": {
-                        "config": {
-                            "strategy": {
-                                "type": "custom:garden-care"
-                            }
-                        }
+        # Dashboard strategy config - this is the key part
+        dashboard_config = {
+            "version": 1,
+            "minor_version": 1,
+            "key": "lovelace.garden-care",
+            "data": {
+                "config": {
+                    "strategy": {
+                        "type": "custom:garden-care"
                     }
                 }
-                with open(dashboard_config_path, "w") as f:
-                    json.dump(dashboard_config, f, indent=2)
-                _LOGGER.info("Created Garden Care dashboard strategy config")
+            }
+        }
+
+        # Always ensure the strategy config exists and is correct
+        dashboard_config_path = hass.config.path(".storage/lovelace.garden-care")
+        strategy_needs_update = True
+
+        if os.path.exists(dashboard_config_path):
+            try:
+                with open(dashboard_config_path, "r") as f:
+                    existing_config = json.load(f)
+                # Check if strategy is already set correctly
+                existing_strategy = existing_config.get("data", {}).get("config", {}).get("strategy", {})
+                if existing_strategy.get("type") == "custom:garden-care":
+                    strategy_needs_update = False
+                    _LOGGER.debug("Garden Care dashboard strategy already configured")
+            except (json.JSONDecodeError, KeyError):
+                pass
+
+        if strategy_needs_update:
+            with open(dashboard_config_path, "w") as f:
+                json.dump(dashboard_config, f, indent=2)
+            _LOGGER.info("Set Garden Care dashboard to use custom:garden-care strategy")
+
+        # Now ensure the dashboard entry exists in lovelace_dashboards
+        storage_path = hass.config.path(".storage/lovelace_dashboards")
+
+        dashboards_data = {"version": 1, "minor_version": 1, "key": "lovelace_dashboards", "data": {"items": []}}
+        if os.path.exists(storage_path):
+            try:
+                with open(storage_path, "r") as f:
+                    dashboards_data = json.load(f)
+            except (json.JSONDecodeError, KeyError):
+                pass
+
+        # Check if dashboard entry exists
+        items = dashboards_data.get("data", {}).get("items", [])
+        if not any(item.get("url_path") == "garden-care" for item in items):
+            items.append({
+                "id": "garden_care",
+                "url_path": "garden-care",
+                "mode": "storage",
+                "title": "Garden Care",
+                "icon": "mdi:flower",
+                "show_in_sidebar": True,
+                "require_admin": False,
+            })
+            dashboards_data["data"]["items"] = items
+
+            with open(storage_path, "w") as f:
+                json.dump(dashboards_data, f, indent=2)
+            _LOGGER.info("Created Garden Care dashboard entry in sidebar")
 
         hass.data[DOMAIN]["dashboard_created"] = True
 
