@@ -320,16 +320,46 @@ If you prefer to create the dashboard manually:
 
 ### Add Resources Manually (if needed)
 
-If the custom card doesn't appear, add the resources manually:
+The integration automatically registers the required JavaScript resources on startup. However, if the custom cards don't appear or you see errors, you may need to add them manually.
 
-1. **Settings** → **Dashboards** → **Three dots** → **Resources**
-2. **Add Resource**:
+#### When Manual Setup is Required
+
+- Dashboard shows "Custom element doesn't exist: plant-care-card"
+- Cards appear blank or show errors
+- After upgrading from an older version
+- When using YAML mode dashboards
+
+#### Step-by-Step Resource Setup
+
+1. **Open Resources Page:**
+   - Go to **Settings** → **Dashboards**
+   - Click the **three dots menu** (top right) → **Resources**
+
+2. **Add Plant Care Card Resource:**
+   - Click **+ Add Resource**
    - URL: `/notion-garden-care/plant-care-card.js`
-   - Type: JavaScript Module
-3. **Add Resource**:
+   - Resource Type: **JavaScript Module**
+   - Click **Create**
+
+3. **Add Dashboard Strategy Resource:**
+   - Click **+ Add Resource**
    - URL: `/notion-garden-care/garden-care-strategy.js`
-   - Type: JavaScript Module
-4. Hard refresh your browser (Ctrl+Shift+R)
+   - Resource Type: **JavaScript Module**
+   - Click **Create**
+
+4. **Refresh Browser:**
+   - Hard refresh your browser: **Ctrl+Shift+R** (Windows/Linux) or **Cmd+Shift+R** (Mac)
+   - Or clear browser cache and reload
+
+#### Verify Resources are Loading
+
+Open your browser's Developer Tools (F12) and check the Console tab. You should see:
+```
+PLANT-CARE-CARD  Loaded
+GARDEN-CARE-STRATEGY  Loaded
+```
+
+If you see 404 errors for the JS files, verify the integration is installed correctly in `custom_components/notion_garden_care/` and restart Home Assistant.
 
 ### Use Plant Care Card Individually
 
