@@ -5,6 +5,8 @@ import logging
 import json
 import re
 from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 from notion_client import Client
 from notion_client.errors import APIResponseError
@@ -14,7 +16,9 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv
-from homeassistant.components import conversation
+from homeassistant.helpers.typing import ConfigType
+from homeassistant.components import conversation, frontend
+from homeassistant.components.http import StaticPathConfig
 import voluptuous as vol
 
 from .const import (
@@ -42,6 +46,8 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
+URL_BASE = "/notion-garden-care"
+FRONTEND_VERSION = "1.3.0"
 
 UPDATE_SERVICE_SCHEMA = vol.Schema(
     {
@@ -69,6 +75,65 @@ ADD_PLANT_SCHEMA = vol.Schema(
 )
 
 
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Set up the Notion Garden Care integration."""
+    hass.data.setdefault(DOMAIN, {"frontend_loaded": False})
+
+    # Register frontend resources early so they're available even before config entry
+    await _async_register_frontend(hass)
+
+    return True
+
+
+async def _async_register_frontend(hass: HomeAssistant) -> None:
+    """Register frontend resources for the custom card and dashboard."""
+    # Only register once
+    if hass.data[DOMAIN].get("frontend_loaded"):
+        _LOGGER.debug("Frontend already loaded, skipping registration")
+        return
+
+    frontend_path = Path(__file__).parent / "frontend"
+    _LOGGER.info("Frontend path: %s (exists: %s)", frontend_path, frontend_path.exists())
+
+    if not frontend_path.exists():
+        _LOGGER.error("Frontend path does not exist: %s", frontend_path)
+        return
+
+    # List files in frontend directory for debugging
+    try:
+        files = list(frontend_path.iterdir())
+        _LOGGER.info("Frontend files: %s", [f.name for f in files])
+    except Exception as err:
+        _LOGGER.error("Could not list frontend directory: %s", err)
+
+    # Register static path for serving JS files using async method
+    try:
+        await hass.http.async_register_static_paths([
+            StaticPathConfig(
+                url_path=URL_BASE,
+                path=str(frontend_path),
+                cache_headers=False
+            )
+        ])
+        _LOGGER.info("Successfully registered static path: %s -> %s", URL_BASE, frontend_path)
+    except Exception as err:
+        _LOGGER.error("Failed to register static path: %s", err)
+        return
+
+    # Add JS files to frontend so they load automatically
+    card_url = f"{URL_BASE}/plant-care-card.js"
+    strategy_url = f"{URL_BASE}/garden-care-strategy.js"
+
+    try:
+        frontend.add_extra_js_url(hass, card_url, es5=False)
+        frontend.add_extra_js_url(hass, strategy_url, es5=False)
+        _LOGGER.info("Added frontend JS resources: %s, %s", card_url, strategy_url)
+    except Exception as err:
+        _LOGGER.error("Failed to add extra JS URLs: %s", err)
+
+    hass.data[DOMAIN]["frontend_loaded"] = True
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Notion Garden Care from a config entry."""
     notion_token = entry.data[CONF_NOTION_TOKEN]
@@ -93,6 +158,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "notion": notion,
         "database_id": database_id,
     }
+
+    # Register frontend resources (custom card and dashboard strategy)
+    await _async_register_frontend(hass)
 
     # Setup platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
