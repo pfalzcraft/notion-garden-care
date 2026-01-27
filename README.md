@@ -14,7 +14,8 @@ Manage your garden with Notion and automate reminders with Home Assistant. Track
 - 🌿 **Automatic Setup** - No coding required, everything happens in Home Assistant UI
 - 🗄️ **Auto-Create Database** - Integration creates the Notion database for you
 - 📅 **Smart Reminders** - Never forget to water, fertilize, or prune
-- 📊 **Beautiful Dashboard** - Visual overview of all garden tasks
+- 📊 **Auto-Created Dashboard** - Beautiful dashboard with plant cards auto-generated on install
+- 🃏 **Custom Plant Cards** - Interactive cards showing care schedules with action buttons
 - 🔄 **Bidirectional Sync** - Update Notion from Home Assistant and vice versa
 - 🪴 **Example Plants** - Pre-configured templates to get started
 - 📱 **Mobile Friendly** - Works on all Home Assistant apps
@@ -279,15 +280,69 @@ Set up reminders in seconds:
    - **Garden Care - Fertilizing Reminder** (daily)
    - **Garden Care - Pruning Reminder** (monthly)
 
-## 📱 Add Dashboard (Optional)
+## 📱 Dashboard
 
-1. **Settings** → **Dashboards** → Your Dashboard
-2. **Edit** → **+ Add Card** → **Manual**
-3. Copy YAML from [`homeassistant/config/dashboard.yaml`](homeassistant/config/dashboard.yaml)
+### Auto-Created Dashboard
 
-Or create cards manually:
-- Glance card with all sensors
-- Conditional markdown cards for task lists
+When you install the integration, a **Garden Care** dashboard is automatically created and appears in your sidebar. This dashboard uses the `custom:garden-care` strategy to auto-populate with all your plants.
+
+The dashboard includes:
+- **Plants View** - Individual cards for each plant showing care schedules
+- **Overview View** - Statistics and task summaries
+
+### Plant Care Card
+
+Each plant card displays:
+- Plant name with type-specific icon (flower, tree, vegetable, etc.)
+- Location badge
+- Care schedule:
+  - Water: Next date with days until/overdue indicator
+  - Fertilize: Next date with days until/overdue
+  - Prune: Months (highlighted if current month)
+  - Harvest: Months (highlighted if current month)
+  - Aeration/Sanding: For lawns only
+- **Info button** - Click to see all plant attributes in a popup
+- **Action buttons** - Mark tasks as complete (Watered, Fertilized, Pruned)
+
+### Manual Dashboard Setup
+
+If you prefer to create the dashboard manually:
+
+1. **Settings** → **Dashboards** → **Add Dashboard**
+2. Name it "Garden Care" → **Create**
+3. Click **Edit** → **Three dots** → **Raw configuration editor**
+4. Replace content with:
+   ```yaml
+   strategy:
+     type: custom:garden-care
+   ```
+5. **Save**
+
+### Add Resources Manually (if needed)
+
+If the custom card doesn't appear, add the resources manually:
+
+1. **Settings** → **Dashboards** → **Three dots** → **Resources**
+2. **Add Resource**:
+   - URL: `/notion-garden-care/plant-care-card.js`
+   - Type: JavaScript Module
+3. **Add Resource**:
+   - URL: `/notion-garden-care/garden-care-strategy.js`
+   - Type: JavaScript Module
+4. Hard refresh your browser (Ctrl+Shift+R)
+
+### Use Plant Care Card Individually
+
+You can also add the Plant Care Card to any dashboard:
+
+1. **Edit Dashboard** → **Add Card**
+2. Search for "Plant Care Card"
+3. Select a plant entity from the dropdown
+
+```yaml
+type: custom:plant-care-card
+entity: sensor.garden_care_tomatoes
+```
 
 ## 🌱 Notion Database Structure
 
