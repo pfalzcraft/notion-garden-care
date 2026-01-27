@@ -47,24 +47,17 @@ class GardenCareDashboardStrategy {
     // Add header card
     cards.push({
       type: 'markdown',
-      content: '# My Plants\nClick on action buttons to mark tasks as complete.'
+      content: '# My Plants\nClick on action buttons to mark tasks as complete. Tap the info icon for full details.'
     });
 
-    // Add a plant card for each plant
+    // Add a plant card for each plant - no grid, let masonry layout handle it
     if (plantEntities.length > 0) {
-      // Create a grid of plant cards
-      const plantCards = plantEntities.map(entityId => ({
-        type: 'custom:plant-care-card',
-        entity: entityId
-      }));
-
-      // Use a grid layout for the cards
-      cards.push({
-        type: 'grid',
-        columns: 2,
-        square: false,
-        cards: plantCards
-      });
+      for (const entityId of plantEntities) {
+        cards.push({
+          type: 'custom:plant-care-card',
+          entity: entityId
+        });
+      }
     } else {
       cards.push({
         type: 'markdown',

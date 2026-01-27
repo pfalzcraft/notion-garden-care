@@ -133,6 +133,106 @@ async def _async_register_frontend(hass: HomeAssistant) -> None:
 
     hass.data[DOMAIN]["frontend_loaded"] = True
 
+    # Create the Garden Care dashboard automatically
+    await _async_create_dashboard(hass)
+
+
+async def _async_create_dashboard(hass: HomeAssistant) -> None:
+    """Create the Garden Care dashboard if it doesn't exist."""
+    if hass.data[DOMAIN].get("dashboard_created"):
+        return
+
+    try:
+        # Use the lovelace/dashboards/create WebSocket API via hass.services
+        from homeassistant.components.lovelace import DOMAIN as LOVELACE_DOMAIN
+        from homeassistant.components.lovelace.const import MODE_STORAGE
+
+        # Check if dashboard already exists in storage
+        lovelace_data = hass.data.get(LOVELACE_DOMAIN, {})
+        dashboards = lovelace_data.get("dashboards", {})
+
+        if "garden-care" in dashboards:
+            _LOGGER.debug("Garden Care dashboard already exists")
+            hass.data[DOMAIN]["dashboard_created"] = True
+            return
+
+        # Try to create dashboard via websocket command
+        from homeassistant.components.lovelace.dashboard import LovelaceStorage
+        from homeassistant.components.lovelace import dashboard
+
+        # Create dashboard config
+        config_data = {
+            "url_path": "garden-care",
+            "mode": MODE_STORAGE,
+            "title": "Garden Care",
+            "icon": "mdi:flower",
+            "show_in_sidebar": True,
+            "require_admin": False,
+        }
+
+        # Access the dashboards collection
+        if hasattr(lovelace_data, "dashboards") and hasattr(lovelace_data.dashboards, "async_create_item"):
+            await lovelace_data.dashboards.async_create_item(config_data)
+            _LOGGER.info("Created Garden Care dashboard via collection")
+        else:
+            # Fallback: Write dashboard config to .storage
+            storage_path = hass.config.path(".storage/lovelace_dashboards")
+            import json
+            import os
+
+            # Read existing dashboards
+            dashboards_data = {"version": 1, "minor_version": 1, "key": "lovelace_dashboards", "data": {"items": []}}
+            if os.path.exists(storage_path):
+                with open(storage_path, "r") as f:
+                    dashboards_data = json.load(f)
+
+            # Check if already exists
+            items = dashboards_data.get("data", {}).get("items", [])
+            if not any(item.get("url_path") == "garden-care" for item in items):
+                items.append({
+                    "id": "garden_care",
+                    "url_path": "garden-care",
+                    "mode": "storage",
+                    "title": "Garden Care",
+                    "icon": "mdi:flower",
+                    "show_in_sidebar": True,
+                    "require_admin": False,
+                })
+                dashboards_data["data"]["items"] = items
+
+                with open(storage_path, "w") as f:
+                    json.dump(dashboards_data, f, indent=2)
+                _LOGGER.info("Created Garden Care dashboard in storage")
+
+                # Also create the dashboard config with strategy
+                dashboard_config_path = hass.config.path(".storage/lovelace.garden-care")
+                dashboard_config = {
+                    "version": 1,
+                    "minor_version": 1,
+                    "key": "lovelace.garden-care",
+                    "data": {
+                        "config": {
+                            "strategy": {
+                                "type": "custom:garden-care"
+                            }
+                        }
+                    }
+                }
+                with open(dashboard_config_path, "w") as f:
+                    json.dump(dashboard_config, f, indent=2)
+                _LOGGER.info("Created Garden Care dashboard strategy config")
+
+        hass.data[DOMAIN]["dashboard_created"] = True
+
+    except Exception as err:
+        _LOGGER.warning("Could not auto-create dashboard: %s", err)
+        _LOGGER.info(
+            "To create the Garden Care dashboard manually:\n"
+            "1. Go to Settings -> Dashboards -> Add Dashboard\n"
+            "2. Edit the dashboard and use Raw Configuration Editor\n"
+            "3. Set: strategy:\n         type: custom:garden-care"
+        )
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Notion Garden Care from a config entry."""
