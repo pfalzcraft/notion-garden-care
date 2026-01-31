@@ -15,6 +15,7 @@ Manage your garden with Notion and automate reminders with Home Assistant. Track
 - 🗄️ **Auto-Create Database** - Integration creates the Notion database for you
 - 📅 **Smart Reminders** - Never forget to water, fertilize, or prune
 - 📊 **Auto-Created Dashboard** - Beautiful dashboard with plant cards auto-generated on install
+- ➕ **Add Plant Form** - Easy form to add new plants directly from the dashboard
 - 🃏 **Custom Plant Cards** - Interactive cards showing care schedules with action buttons
 - 🔄 **Bidirectional Sync** - Update Notion from Home Assistant and vice versa
 - 🪴 **Example Plants** - Pre-configured templates to get started
@@ -287,8 +288,17 @@ Set up reminders in seconds:
 When you install the integration, a **Garden Care** dashboard is automatically created and appears in your sidebar. This dashboard uses the `custom:garden-care` strategy to auto-populate with all your plants.
 
 The dashboard includes:
-- **Plants View** - Individual cards for each plant showing care schedules
+- **Plants View** - Add Plant form + individual cards for each plant
 - **Overview View** - Statistics and task summaries
+
+### Add Plant Card
+
+At the top of the Plants view, you'll find the **Add Plant** form:
+- Enter a plant name in the text box
+- Click **Add Plant** to create a new plant with AI-generated care info
+- **Duplicate protection** - Won't create a plant if the name already exists
+- Shows loading spinner while AI processes
+- Displays success/error messages
 
 ### Plant Care Card
 

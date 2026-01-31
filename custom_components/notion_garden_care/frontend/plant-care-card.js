@@ -462,16 +462,24 @@ class PlantCareCard extends HTMLElement {
 
     // Add event listener for info popup
     const overlay = this.shadowRoot.getElementById('popup-overlay');
+    let popupJustOpened = false;
+
     this.shadowRoot.getElementById('info-toggle')?.addEventListener('click', (e) => {
       e.stopPropagation();
+      e.preventDefault();
+      popupJustOpened = true;
       overlay?.classList.add('open');
+      // Reset flag after a short delay to prevent immediate close on mobile
+      setTimeout(() => { popupJustOpened = false; }, 300);
     });
     this.shadowRoot.getElementById('popup-close')?.addEventListener('click', (e) => {
       e.stopPropagation();
+      e.preventDefault();
       overlay?.classList.remove('open');
     });
     overlay?.addEventListener('click', (e) => {
-      if (e.target === overlay) {
+      // Only close if clicking on overlay (not content) and popup wasn't just opened
+      if (e.target === overlay && !popupJustOpened) {
         overlay.classList.remove('open');
       }
     });

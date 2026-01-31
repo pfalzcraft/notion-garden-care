@@ -550,28 +550,45 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def _find_page_by_name(hass: HomeAssistant, entry_id: str, plant_name: str) -> str | None:
     """Find page ID by plant name."""
-    notion = hass.data[DOMAIN][entry_id]["notion"]
     database_id = hass.data[DOMAIN][entry_id]["database_id"]
 
-    try:
-        response = await hass.async_add_executor_job(
-            notion.databases.query,
-            database_id,
-            {
-                "filter": {
-                    "property": "Name",
-                    "title": {
-                        "equals": plant_name
-                    }
+    # Get the token from config entry
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        if entry.entry_id == entry_id:
+            notion_token = entry.data.get("notion_token")
+            break
+    else:
+        _LOGGER.error("Could not find config entry for entry_id: %s", entry_id)
+        return None
+
+    def _query_by_name():
+        """Query Notion database for plant by name."""
+        import httpx
+        url = f"https://api.notion.com/v1/databases/{database_id}/query"
+        headers = {
+            "Authorization": f"Bearer {notion_token}",
+            "Notion-Version": "2022-06-28",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "filter": {
+                "property": "Name",
+                "title": {
+                    "equals": plant_name
                 }
             }
-        )
+        }
+        response = httpx.post(url, headers=headers, json=payload, timeout=30.0)
+        response.raise_for_status()
+        return response.json()
 
+    try:
+        response = await hass.async_add_executor_job(_query_by_name)
         results = response.get("results", [])
         if results:
             return results[0]["id"]
 
-    except APIResponseError as err:
+    except Exception as err:
         _LOGGER.error("Failed to find plant: %s", err)
 
     return None
