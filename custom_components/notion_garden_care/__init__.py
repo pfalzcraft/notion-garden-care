@@ -47,7 +47,7 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 URL_BASE = "/notion-garden-care"
-FRONTEND_VERSION = "1.3.0"
+FRONTEND_VERSION = "1.4.0"
 
 UPDATE_SERVICE_SCHEMA = vol.Schema(
     {
@@ -120,9 +120,9 @@ async def _async_register_frontend(hass: HomeAssistant) -> None:
         _LOGGER.error("Failed to register static path: %s", err)
         return
 
-    # Add JS files to frontend so they load automatically
-    card_url = f"{URL_BASE}/plant-care-card.js"
-    strategy_url = f"{URL_BASE}/garden-care-strategy.js"
+    # Add JS files to frontend so they load automatically (with version for cache busting)
+    card_url = f"{URL_BASE}/plant-care-card.js?v={FRONTEND_VERSION}"
+    strategy_url = f"{URL_BASE}/garden-care-strategy.js?v={FRONTEND_VERSION}"
 
     try:
         frontend.add_extra_js_url(hass, card_url, es5=False)
