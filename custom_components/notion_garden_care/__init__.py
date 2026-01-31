@@ -411,6 +411,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.error("Plant name is required")
             return
 
+        # Check for duplicate - see if plant with this name already exists
+        existing_page_id = await _find_page_by_name(hass, entry.entry_id, plant_name)
+        if existing_page_id:
+            _LOGGER.warning("Plant '%s' already exists in the database, skipping creation", plant_name)
+            return
+
         # Get the conversation agent from options
         agent_id = entry.options.get(CONF_CONVERSATION_AGENT)
         if not agent_id:

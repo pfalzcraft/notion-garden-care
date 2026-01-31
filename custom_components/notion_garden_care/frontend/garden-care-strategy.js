@@ -44,10 +44,15 @@ class GardenCareDashboardStrategy {
   static async generatePlantsView(info, plantEntities) {
     const cards = [];
 
+    // Add the "Add Plant" form card at the top
+    cards.push({
+      type: 'custom:add-plant-card'
+    });
+
     // Add header card
     cards.push({
       type: 'markdown',
-      content: '# My Plants\nClick on action buttons to mark tasks as complete. Tap the info icon for full details.'
+      content: '## My Plants\nClick on action buttons to mark tasks as complete. Tap the info icon for full details.'
     });
 
     // Add a plant card for each plant - no grid, let masonry layout handle it

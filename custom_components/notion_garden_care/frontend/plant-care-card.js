@@ -592,9 +592,337 @@ class PlantCareCardEditor extends HTMLElement {
   }
 }
 
-// Register the card and editor
+/**
+ * Add Plant Card - Form to add new plants using AI
+ */
+class AddPlantCard extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+    this._loading = false;
+    this._message = null;
+    this._messageType = null;
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    if (!this._initialized) {
+      this.render();
+      this._initialized = true;
+    }
+  }
+
+  setConfig(config) {
+    this._config = config;
+  }
+
+  getCardSize() {
+    return 2;
+  }
+
+  static getConfigElement() {
+    return document.createElement('add-plant-card-editor');
+  }
+
+  static getStubConfig() {
+    return {};
+  }
+
+  /**
+   * Check if plant already exists
+   */
+  plantExists(plantName) {
+    if (!this._hass || !plantName) return false;
+
+    const normalizedInput = plantName.toLowerCase().trim();
+
+    // Check all garden care entities
+    for (const entityId of Object.keys(this._hass.states)) {
+      if (entityId.startsWith('sensor.garden_care_') &&
+          !entityId.includes('plants_to_') &&
+          !entityId.includes('active_plants') &&
+          !entityId.includes('database')) {
+        const state = this._hass.states[entityId];
+        const existingName = state.attributes.plant_name || state.attributes.name || '';
+        if (existingName.toLowerCase().trim() === normalizedInput) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Handle add plant button click
+   */
+  async addPlant() {
+    const input = this.shadowRoot.getElementById('plant-name-input');
+    const plantName = input?.value?.trim();
+
+    if (!plantName) {
+      this.showMessage('Please enter a plant name', 'error');
+      return;
+    }
+
+    // Check for duplicates
+    if (this.plantExists(plantName)) {
+      this.showMessage(`"${plantName}" already exists in your garden`, 'error');
+      return;
+    }
+
+    // Show loading state
+    this._loading = true;
+    this.updateUI();
+
+    try {
+      await this._hass.callService('notion_garden_care', 'add_plant', {
+        plant_name: plantName
+      });
+
+      this.showMessage(`Adding "${plantName}"... This may take a moment.`, 'success');
+      input.value = '';
+
+    } catch (err) {
+      console.error('Failed to add plant:', err);
+      this.showMessage(`Failed to add plant: ${err.message}`, 'error');
+    } finally {
+      this._loading = false;
+      this.updateUI();
+    }
+  }
+
+  showMessage(text, type) {
+    this._message = text;
+    this._messageType = type;
+    this.updateUI();
+
+    // Clear message after 5 seconds
+    setTimeout(() => {
+      this._message = null;
+      this._messageType = null;
+      this.updateUI();
+    }, 5000);
+  }
+
+  updateUI() {
+    const messageEl = this.shadowRoot.getElementById('message');
+    const buttonEl = this.shadowRoot.getElementById('add-btn');
+    const spinnerEl = this.shadowRoot.getElementById('spinner');
+
+    if (messageEl) {
+      messageEl.textContent = this._message || '';
+      messageEl.className = `message ${this._messageType || ''}`;
+      messageEl.style.display = this._message ? 'block' : 'none';
+    }
+
+    if (buttonEl) {
+      buttonEl.disabled = this._loading;
+      buttonEl.textContent = this._loading ? 'Adding...' : 'Add Plant';
+    }
+
+    if (spinnerEl) {
+      spinnerEl.style.display = this._loading ? 'inline-block' : 'none';
+    }
+  }
+
+  render() {
+    this.shadowRoot.innerHTML = `
+      <style>
+        :host {
+          display: block;
+        }
+        ha-card {
+          padding: 16px;
+          box-sizing: border-box;
+        }
+        .header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 16px;
+          padding-bottom: 12px;
+          border-bottom: 1px solid var(--divider-color, #e0e0e0);
+        }
+        .header-icon {
+          --mdc-icon-size: 32px;
+          color: var(--primary-color);
+        }
+        .header-title {
+          font-size: 1.2em;
+          font-weight: 500;
+          color: var(--primary-text-color);
+        }
+        .form-row {
+          display: flex;
+          gap: 12px;
+          align-items: center;
+        }
+        .input-wrapper {
+          flex: 1;
+        }
+        input[type="text"] {
+          width: 100%;
+          padding: 12px;
+          border: 1px solid var(--divider-color, #ccc);
+          border-radius: 8px;
+          font-size: 1em;
+          background: var(--card-background-color, white);
+          color: var(--primary-text-color);
+          box-sizing: border-box;
+        }
+        input[type="text"]:focus {
+          outline: none;
+          border-color: var(--primary-color);
+          box-shadow: 0 0 0 2px rgba(var(--rgb-primary-color, 33, 150, 243), 0.2);
+        }
+        input[type="text"]::placeholder {
+          color: var(--secondary-text-color);
+          opacity: 0.7;
+        }
+        .add-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 12px 24px;
+          border: none;
+          border-radius: 8px;
+          background: var(--primary-color);
+          color: var(--text-primary-color, white);
+          cursor: pointer;
+          font-size: 1em;
+          font-weight: 500;
+          transition: opacity 0.2s, background 0.2s;
+          white-space: nowrap;
+        }
+        .add-btn:hover:not(:disabled) {
+          opacity: 0.9;
+        }
+        .add-btn:active:not(:disabled) {
+          opacity: 0.8;
+        }
+        .add-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+        .spinner {
+          display: none;
+          width: 16px;
+          height: 16px;
+          border: 2px solid transparent;
+          border-top-color: currentColor;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        .message {
+          display: none;
+          margin-top: 12px;
+          padding: 10px 12px;
+          border-radius: 8px;
+          font-size: 0.9em;
+        }
+        .message.success {
+          background: rgba(76, 175, 80, 0.15);
+          color: #2e7d32;
+          border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+        .message.error {
+          background: rgba(244, 67, 54, 0.15);
+          color: #c62828;
+          border: 1px solid rgba(244, 67, 54, 0.3);
+        }
+        .hint {
+          margin-top: 12px;
+          font-size: 0.85em;
+          color: var(--secondary-text-color);
+        }
+      </style>
+
+      <ha-card>
+        <div class="header">
+          <ha-icon class="header-icon" icon="mdi:plus-circle"></ha-icon>
+          <span class="header-title">Add New Plant</span>
+        </div>
+
+        <div class="form-row">
+          <div class="input-wrapper">
+            <input
+              type="text"
+              id="plant-name-input"
+              placeholder="Enter plant name (e.g., Lavender, Tomato, Oak Tree)"
+            />
+          </div>
+          <button class="add-btn" id="add-btn">
+            <span class="spinner" id="spinner"></span>
+            Add Plant
+          </button>
+        </div>
+
+        <div class="message" id="message"></div>
+
+        <div class="hint">
+          AI will automatically fill in care instructions, watering schedule, and more.
+        </div>
+      </ha-card>
+    `;
+
+    // Add event listeners
+    this.shadowRoot.getElementById('add-btn')?.addEventListener('click', () => {
+      this.addPlant();
+    });
+
+    // Allow Enter key to submit
+    this.shadowRoot.getElementById('plant-name-input')?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        this.addPlant();
+      }
+    });
+  }
+}
+
+/**
+ * Add Plant Card Editor
+ */
+class AddPlantCardEditor extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+  }
+
+  setConfig(config) {
+    this._config = config;
+  }
+
+  render() {
+    this.shadowRoot.innerHTML = `
+      <style>
+        .editor {
+          padding: 16px;
+        }
+        .note {
+          color: var(--secondary-text-color);
+          font-size: 14px;
+        }
+      </style>
+      <div class="editor">
+        <p class="note">This card provides a form to add new plants using AI. No configuration required.</p>
+      </div>
+    `;
+  }
+
+  connectedCallback() {
+    this.render();
+  }
+}
+
+// Register the cards and editors
 customElements.define('plant-care-card', PlantCareCard);
 customElements.define('plant-care-card-editor', PlantCareCardEditor);
+customElements.define('add-plant-card', AddPlantCard);
+customElements.define('add-plant-card-editor', AddPlantCardEditor);
 
 // Register for card picker
 window.customCards = window.customCards || [];
@@ -605,8 +933,19 @@ window.customCards.push({
   preview: true,
   documentationURL: 'https://github.com/pfalzcraft/notion-garden-care'
 });
+window.customCards.push({
+  type: 'add-plant-card',
+  name: 'Add Plant Card',
+  description: 'Form to add new plants with AI-powered care info',
+  preview: false,
+  documentationURL: 'https://github.com/pfalzcraft/notion-garden-care'
+});
 
 console.info('%c PLANT-CARE-CARD %c Loaded ',
   'color: white; background: #4CAF50; font-weight: bold;',
   'color: #4CAF50; background: white; font-weight: bold;'
+);
+console.info('%c ADD-PLANT-CARD %c Loaded ',
+  'color: white; background: #2196F3; font-weight: bold;',
+  'color: #2196F3; background: white; font-weight: bold;'
 );
