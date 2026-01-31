@@ -3,7 +3,7 @@
   "name": "Notion Garden Care",
   "codeowners": ["@pfalzcraft"],
   "config_flow": true,
-  "dependencies": ["frontend", "http"],
+  "dependencies": ["conversation", "frontend", "http"],
   "documentation": "https://github.com/pfalzcraft/notion-garden-care",
   "integration_type": "service",
   "iot_class": "cloud_polling",
