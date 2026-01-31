@@ -2,6 +2,17 @@
 
 All notable changes to the Notion Garden Care integration will be documented in this file.
 
+## [1.5.1] - 2026-01-31
+
+### Fixed
+- **Dashboard Upgrade Fix**: Fixed issue where upgrading from older versions would keep the old "original-states" dashboard instead of switching to the new YAML-based strategy
+- The integration now automatically deletes the old `lovelace.garden-care` storage file on startup to ensure clean upgrades
+
+### Added
+- **Integration Icons**: Added `icon.png`, `icon@2x.png`, and `logo.png` for better branding in Home Assistant UI
+
+---
+
 ## [1.5.0] - 2026-01-31
 
 ### Added
