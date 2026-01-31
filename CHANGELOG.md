@@ -2,6 +2,15 @@
 
 All notable changes to the Notion Garden Care integration will be documented in this file.
 
+## [1.6.0] - 2026-01-31
+
+### Fixed
+- **Custom Element Registration**: Fixed "already been used with this registry" error that prevented the dashboard strategy and cards from loading
+- Both `garden-care-strategy.js` and `plant-care-card.js` now check if elements are already registered before defining them
+- This fixes issues when the JS files are loaded multiple times (e.g., after hot reload or navigation)
+
+---
+
 ## [1.5.1] - 2026-01-31
 
 ### Fixed

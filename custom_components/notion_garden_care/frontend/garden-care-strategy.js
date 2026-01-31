@@ -63,17 +63,23 @@ class GardenCareDashboardStrategy {
   }
 }
 
-// Register the dashboard strategy
-customElements.define(
-  'll-strategy-dashboard-garden-care',
-  class extends HTMLElement {
-    static async generate(config, hass) {
-      return await GardenCareDashboardStrategy.generateDashboard({ config, hass });
+// Register the dashboard strategy (only if not already registered)
+if (!customElements.get('ll-strategy-dashboard-garden-care')) {
+  customElements.define(
+    'll-strategy-dashboard-garden-care',
+    class extends HTMLElement {
+      static async generate(config, hass) {
+        return await GardenCareDashboardStrategy.generateDashboard({ config, hass });
+      }
     }
-  }
-);
-
-console.info('%c GARDEN-CARE-STRATEGY %c Loaded ',
-  'color: white; background: #4CAF50; font-weight: bold;',
-  'color: #4CAF50; background: white; font-weight: bold;'
-);
+  );
+  console.info('%c GARDEN-CARE-STRATEGY %c Loaded ',
+    'color: white; background: #4CAF50; font-weight: bold;',
+    'color: #4CAF50; background: white; font-weight: bold;'
+  );
+} else {
+  console.info('%c GARDEN-CARE-STRATEGY %c Already registered ',
+    'color: white; background: #FF9800; font-weight: bold;',
+    'color: #FF9800; background: white; font-weight: bold;'
+  );
+}

@@ -1141,11 +1141,19 @@ class AddPlantCardEditor extends HTMLElement {
   }
 }
 
-// Register the cards and editors
-customElements.define('plant-care-card', PlantCareCard);
-customElements.define('plant-care-card-editor', PlantCareCardEditor);
-customElements.define('add-plant-card', AddPlantCard);
-customElements.define('add-plant-card-editor', AddPlantCardEditor);
+// Register the cards and editors (only if not already registered)
+if (!customElements.get('plant-care-card')) {
+  customElements.define('plant-care-card', PlantCareCard);
+}
+if (!customElements.get('plant-care-card-editor')) {
+  customElements.define('plant-care-card-editor', PlantCareCardEditor);
+}
+if (!customElements.get('add-plant-card')) {
+  customElements.define('add-plant-card', AddPlantCard);
+}
+if (!customElements.get('add-plant-card-editor')) {
+  customElements.define('add-plant-card-editor', AddPlantCardEditor);
+}
 
 // Register for card picker
 window.customCards = window.customCards || [];
