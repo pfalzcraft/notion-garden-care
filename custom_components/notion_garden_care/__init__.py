@@ -164,6 +164,12 @@ strategy:
         await hass.async_add_executor_job(_write_file, yaml_path, yaml_config)
         _LOGGER.debug("Created/updated garden-care-dashboard.yaml")
 
+        # Delete any old storage-mode dashboard config file (from previous versions)
+        old_storage_config = hass.config.path(".storage/lovelace.garden-care")
+        if os.path.exists(old_storage_config):
+            await hass.async_add_executor_job(os.remove, old_storage_config)
+            _LOGGER.info("Removed old storage-mode dashboard config")
+
         # Now register the dashboard entry with mode: yaml
         storage_path = hass.config.path(".storage/lovelace_dashboards")
 
@@ -178,6 +184,13 @@ strategy:
                     pass
 
             items = dashboards_data.get("data", {}).get("items", [])
+
+            # Check if garden-care entry exists and has correct mode
+            existing = next((item for item in items if item.get("url_path") == "garden-care"), None)
+
+            if existing and existing.get("mode") == "yaml" and existing.get("filename") == "garden-care-dashboard.yaml":
+                _LOGGER.debug("Garden Care dashboard already configured correctly")
+                return True
 
             # Remove any existing garden-care entry (might have wrong mode)
             items = [item for item in items if item.get("url_path") != "garden-care"]
@@ -199,6 +212,7 @@ strategy:
             with open(storage_path, "w") as f:
                 json.dump(dashboards_data, f, indent=2)
 
+            _LOGGER.info("Updated lovelace_dashboards with YAML mode entry")
             return True
 
         await hass.async_add_executor_job(_update_dashboards)
