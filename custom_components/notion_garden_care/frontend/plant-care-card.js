@@ -8,11 +8,18 @@ class PlantCareCard extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
+    this._initialized = false;
+    this._popupOpen = false;
   }
 
   set hass(hass) {
     this._hass = hass;
-    this.render();
+    if (!this._initialized) {
+      this.render();
+      this._initialized = true;
+    } else {
+      this.updateValues();
+    }
   }
 
   setConfig(config) {
@@ -20,6 +27,7 @@ class PlantCareCard extends HTMLElement {
       throw new Error('Please define an entity');
     }
     this._config = config;
+    this._initialized = false;
   }
 
   getCardSize() {
@@ -158,6 +166,70 @@ class PlantCareCard extends HTMLElement {
     }
 
     return rows.join('');
+  }
+
+  /**
+   * Update only the dynamic values without re-rendering
+   */
+  updateValues() {
+    if (!this._hass || !this._config) return;
+
+    const entityId = this._config.entity;
+    const state = this._hass.states[entityId];
+    if (!state) return;
+
+    const attrs = state.attributes;
+
+    // Update care schedule values
+    const nextWater = this.formatDueDate(attrs.next_water, 'Water');
+    const nextFertilize = this.formatDueDate(attrs.next_fertilize, 'Fertilize');
+    const pruneMonths = this.formatMonths(attrs.prune_months);
+    const harvestMonths = this.formatMonths(attrs.harvest_months);
+
+    const waterEl = this.shadowRoot.getElementById('water-value');
+    const fertilizeEl = this.shadowRoot.getElementById('fertilize-value');
+    const pruneEl = this.shadowRoot.getElementById('prune-value');
+    const harvestEl = this.shadowRoot.getElementById('harvest-value');
+
+    if (waterEl) {
+      waterEl.textContent = nextWater.text;
+      waterEl.className = `care-value ${nextWater.class}`;
+    }
+    if (fertilizeEl) {
+      fertilizeEl.textContent = nextFertilize.text;
+      fertilizeEl.className = `care-value ${nextFertilize.class}`;
+    }
+    if (pruneEl) {
+      pruneEl.innerHTML = pruneMonths.html;
+      pruneEl.className = `care-value ${pruneMonths.hasCurrentMonth ? 'due-today' : ''}`;
+    }
+    if (harvestEl) {
+      harvestEl.innerHTML = harvestMonths.html;
+      harvestEl.className = `care-value ${harvestMonths.hasCurrentMonth ? 'due-today' : ''}`;
+    }
+
+    // Update lawn-specific fields if present
+    const isLawn = (attrs.type || 'Plant') === 'Lawn';
+    if (isLawn) {
+      const nextAeration = this.formatDueDate(attrs.next_aeration, 'Aeration');
+      const nextSanding = this.formatDueDate(attrs.next_sanding, 'Sanding');
+      const aerationEl = this.shadowRoot.getElementById('aeration-value');
+      const sandingEl = this.shadowRoot.getElementById('sanding-value');
+      if (aerationEl) {
+        aerationEl.textContent = nextAeration.text;
+        aerationEl.className = `care-value ${nextAeration.class}`;
+      }
+      if (sandingEl) {
+        sandingEl.textContent = nextSanding.text;
+        sandingEl.className = `care-value ${nextSanding.class}`;
+      }
+    }
+
+    // Update popup table content
+    const popupTable = this.shadowRoot.querySelector('.popup-table');
+    if (popupTable) {
+      popupTable.innerHTML = this.formatAttributes(attrs);
+    }
   }
 
   render() {
@@ -394,33 +466,33 @@ class PlantCareCard extends HTMLElement {
           <div class="care-row">
             <span class="care-icon">💧</span>
             <span class="care-label">Water</span>
-            <span class="care-value ${nextWater.class}">${nextWater.text}</span>
+            <span class="care-value ${nextWater.class}" id="water-value">${nextWater.text}</span>
           </div>
           <div class="care-row">
             <span class="care-icon">🧪</span>
             <span class="care-label">Fertilize</span>
-            <span class="care-value ${nextFertilize.class}">${nextFertilize.text}</span>
+            <span class="care-value ${nextFertilize.class}" id="fertilize-value">${nextFertilize.text}</span>
           </div>
           <div class="care-row">
             <span class="care-icon">✂️</span>
             <span class="care-label">Prune</span>
-            <span class="care-value ${pruneMonths.hasCurrentMonth ? 'due-today' : ''}">${pruneMonths.html}</span>
+            <span class="care-value ${pruneMonths.hasCurrentMonth ? 'due-today' : ''}" id="prune-value">${pruneMonths.html}</span>
           </div>
           <div class="care-row">
             <span class="care-icon">🍎</span>
             <span class="care-label">Harvest</span>
-            <span class="care-value ${harvestMonths.hasCurrentMonth ? 'due-today' : ''}">${harvestMonths.html}</span>
+            <span class="care-value ${harvestMonths.hasCurrentMonth ? 'due-today' : ''}" id="harvest-value">${harvestMonths.html}</span>
           </div>
           ${isLawn ? `
           <div class="care-row">
             <span class="care-icon">🌱</span>
             <span class="care-label">Aeration</span>
-            <span class="care-value ${nextAeration.class}">${nextAeration.text}</span>
+            <span class="care-value ${nextAeration.class}" id="aeration-value">${nextAeration.text}</span>
           </div>
           <div class="care-row">
             <span class="care-icon">🏖️</span>
             <span class="care-label">Sanding</span>
-            <span class="care-value ${nextSanding.class}">${nextSanding.text}</span>
+            <span class="care-value ${nextSanding.class}" id="sanding-value">${nextSanding.text}</span>
           </div>
           ` : ''}
         </div>
