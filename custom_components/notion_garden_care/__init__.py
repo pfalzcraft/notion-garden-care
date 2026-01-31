@@ -32,6 +32,7 @@ from .const import (
     SERVICE_UPDATE_AERATED,
     SERVICE_UPDATE_HARVESTED,
     SERVICE_UPDATE_SANDED,
+    SERVICE_UPDATE_MOWED,
     SERVICE_UPDATE_PROPERTY,
     SERVICE_REFRESH_DATA,
     SERVICE_ADD_PLANT,
@@ -47,7 +48,7 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 URL_BASE = "/notion-garden-care"
-FRONTEND_VERSION = "1.4.0"
+FRONTEND_VERSION = "1.5.0"
 
 # This integration can only be set up via config entries
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -141,87 +142,81 @@ async def _async_register_frontend(hass: HomeAssistant) -> None:
 
 
 async def _async_create_dashboard(hass: HomeAssistant) -> None:
-    """Create the Garden Care dashboard with strategy if it doesn't exist."""
+    """Create the Garden Care dashboard with strategy using YAML mode."""
     if hass.data[DOMAIN].get("dashboard_created"):
         return
+
+    hass.data[DOMAIN]["dashboard_created"] = True
 
     try:
         import os
 
-        # Dashboard strategy config - this is the key part
-        dashboard_config = {
-            "version": 1,
-            "minor_version": 1,
-            "key": "lovelace.garden-care",
-            "data": {
-                "config": {
-                    "strategy": {
-                        "type": "custom:garden-care"
-                    }
-                }
-            }
-        }
+        # Create the YAML config file for the dashboard
+        yaml_config = """# Garden Care Dashboard - Auto-generated
+# Uses custom:garden-care strategy to auto-generate plant cards
 
-        # Always ensure the strategy config exists and is correct
-        dashboard_config_path = hass.config.path(".storage/lovelace.garden-care")
-        strategy_needs_update = True
+strategy:
+  type: custom:garden-care
+"""
+        yaml_path = hass.config.path("garden-care-dashboard.yaml")
 
-        if os.path.exists(dashboard_config_path):
-            try:
-                with open(dashboard_config_path, "r") as f:
-                    existing_config = json.load(f)
-                # Check if strategy is already set correctly
-                existing_strategy = existing_config.get("data", {}).get("config", {}).get("strategy", {})
-                if existing_strategy.get("type") == "custom:garden-care":
-                    strategy_needs_update = False
-                    _LOGGER.debug("Garden Care dashboard strategy already configured")
-            except (json.JSONDecodeError, KeyError):
-                pass
+        # Always write the YAML file (it's our source of truth)
+        await hass.async_add_executor_job(_write_file, yaml_path, yaml_config)
+        _LOGGER.debug("Created/updated garden-care-dashboard.yaml")
 
-        if strategy_needs_update:
-            with open(dashboard_config_path, "w") as f:
-                json.dump(dashboard_config, f, indent=2)
-            _LOGGER.info("Set Garden Care dashboard to use custom:garden-care strategy")
-
-        # Now ensure the dashboard entry exists in lovelace_dashboards
+        # Now register the dashboard entry with mode: yaml
         storage_path = hass.config.path(".storage/lovelace_dashboards")
 
-        dashboards_data = {"version": 1, "minor_version": 1, "key": "lovelace_dashboards", "data": {"items": []}}
-        if os.path.exists(storage_path):
-            try:
-                with open(storage_path, "r") as f:
-                    dashboards_data = json.load(f)
-            except (json.JSONDecodeError, KeyError):
-                pass
+        def _update_dashboards():
+            dashboards_data = {"version": 1, "minor_version": 1, "key": "lovelace_dashboards", "data": {"items": []}}
 
-        # Check if dashboard entry exists
-        items = dashboards_data.get("data", {}).get("items", [])
-        if not any(item.get("url_path") == "garden-care" for item in items):
+            if os.path.exists(storage_path):
+                try:
+                    with open(storage_path, "r") as f:
+                        dashboards_data = json.load(f)
+                except (json.JSONDecodeError, KeyError):
+                    pass
+
+            items = dashboards_data.get("data", {}).get("items", [])
+
+            # Remove any existing garden-care entry (might have wrong mode)
+            items = [item for item in items if item.get("url_path") != "garden-care"]
+
+            # Add with YAML mode pointing to our config file
             items.append({
                 "id": "garden_care",
                 "url_path": "garden-care",
-                "mode": "storage",
+                "mode": "yaml",
                 "title": "Garden Care",
                 "icon": "mdi:flower",
                 "show_in_sidebar": True,
                 "require_admin": False,
+                "filename": "garden-care-dashboard.yaml",
             })
+
             dashboards_data["data"]["items"] = items
 
             with open(storage_path, "w") as f:
                 json.dump(dashboards_data, f, indent=2)
-            _LOGGER.info("Created Garden Care dashboard entry in sidebar")
 
-        hass.data[DOMAIN]["dashboard_created"] = True
+            return True
+
+        await hass.async_add_executor_job(_update_dashboards)
+        _LOGGER.info("Registered Garden Care dashboard (YAML mode)")
 
     except Exception as err:
-        _LOGGER.warning("Could not auto-create dashboard: %s", err)
+        _LOGGER.warning("Could not create dashboard: %s", err)
         _LOGGER.info(
             "To create the Garden Care dashboard manually:\n"
             "1. Go to Settings -> Dashboards -> Add Dashboard\n"
-            "2. Edit the dashboard and use Raw Configuration Editor\n"
-            "3. Set: strategy:\n         type: custom:garden-care"
+            "2. Set mode to YAML and filename to garden-care-dashboard.yaml"
         )
+
+
+def _write_file(path: str, content: str) -> None:
+    """Write content to a file."""
+    with open(path, "w") as f:
+        f.write(content)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -377,6 +372,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         await _update_date_property(hass, entry.entry_id, page_id, "Last Sanded", call.data.get(ATTR_DATE))
 
+    async def handle_update_mowed(call: ServiceCall) -> None:
+        """Handle mark as mowed service (for lawns)."""
+        page_id = _get_page_id_from_call(call)
+        plant_name = call.data.get(ATTR_PLANT_NAME)
+
+        if not page_id and not plant_name:
+            _LOGGER.error("Either entity_id, page_id, or plant_name must be provided")
+            return
+
+        if not page_id and plant_name:
+            page_id = await _find_page_by_name(hass, entry.entry_id, plant_name)
+            if not page_id:
+                _LOGGER.error("Plant '%s' not found", plant_name)
+                return
+
+        await _update_date_property(hass, entry.entry_id, page_id, "Last Mowed", call.data.get(ATTR_DATE))
+
     async def handle_update_property(call: ServiceCall) -> None:
         """Handle generic property update service."""
         page_id = _get_page_id_from_call(call)
@@ -444,22 +456,26 @@ Please respond ONLY with a valid JSON object (no markdown, no explanation) with 
     "water_amount": "Low|Medium|High",
     "fertilize_interval_days": number (days between fertilizing),
     "fertilizer_type": "text description",
-    "prune_months": ["Month1", "Month2"] (list of month names when pruning is needed),
+    "prune_months": ["Month1", "Month2"] (list of month names when pruning is needed, or empty array if not applicable),
     "prune_instructions": "text description",
-    "harvest_months": ["Month1", "Month2"] (list of month names, or empty if not applicable),
+    "prune_instructions_url": "URL to a helpful guide for pruning this plant (from a reputable gardening site)",
+    "harvest_months": ["Month1", "Month2"] (list of month names, or empty array if not applicable),
     "harvest_notes": "text description or empty",
+    "harvest_instructions_url": "URL to a helpful guide for harvesting this plant (from a reputable gardening site, or empty if not harvestable)",
     "companion_plants": "text listing good companion plants",
     "bad_companions": "text listing plants to avoid planting nearby",
     "bee_friendly": true|false,
     "toxicity": "Safe|Toxic to Pets|Toxic to Children|Toxic to Both",
     "winterize": true|false (whether plant needs winter protection),
     "care_instructions": "general care tips",
+    "care_instructions_url": "URL to a comprehensive care guide for this plant (from a reputable gardening site)",
     "special_notes": "any special requirements"
 }}
 Respond ONLY with the JSON object, nothing else."""
 
         try:
             # Call the conversation agent
+            _LOGGER.info("Calling conversation agent '%s' for plant '%s'", agent_id, plant_name)
             result = await conversation.async_converse(
                 hass=hass,
                 text=prompt,
@@ -470,12 +486,15 @@ Respond ONLY with the JSON object, nothing else."""
             )
 
             # Get the response text
+            _LOGGER.debug("Conversation result type: %s", type(result))
+            _LOGGER.debug("Conversation result.response: %s", result.response)
+
             response_text = result.response.speech.get("plain", {}).get("speech", "")
             if not response_text:
-                _LOGGER.error("No response from AI agent")
+                _LOGGER.error("No response from AI agent. Full result: %s", result)
                 return
 
-            _LOGGER.debug("AI Response: %s", response_text)
+            _LOGGER.debug("AI Response (first 500 chars): %s", response_text[:500])
 
             # Parse JSON from response (handle potential markdown code blocks)
             json_match = re.search(r'\{[\s\S]*\}', response_text)
@@ -483,21 +502,26 @@ Respond ONLY with the JSON object, nothing else."""
                 _LOGGER.error("Could not find JSON in AI response: %s", response_text)
                 return
 
+            _LOGGER.debug("Found JSON in response, parsing...")
             plant_data = json.loads(json_match.group())
+            _LOGGER.info("Parsed plant data for '%s': type=%s, location=%s",
+                        plant_name, plant_data.get("type"), plant_data.get("location"))
 
             # Create the plant in Notion
+            _LOGGER.info("Creating plant '%s' in Notion database...", plant_name)
             await _create_plant_in_notion(hass, entry.entry_id, plant_data)
 
             _LOGGER.info("Successfully added plant '%s' using AI", plant_name)
 
             # Reload the integration to create the new sensor
+            _LOGGER.info("Reloading integration to create sensor for '%s'...", plant_name)
             await hass.config_entries.async_reload(entry.entry_id)
-            _LOGGER.info("Integration reloaded to create sensor for '%s'", plant_name)
+            _LOGGER.info("Integration reloaded, sensor for '%s' should now be available", plant_name)
 
         except json.JSONDecodeError as err:
-            _LOGGER.error("Failed to parse AI response as JSON: %s", err)
+            _LOGGER.error("Failed to parse AI response as JSON: %s", err, exc_info=True)
         except Exception as err:
-            _LOGGER.error("Failed to add plant: %s", err)
+            _LOGGER.error("Failed to add plant '%s': %s", plant_name, err, exc_info=True)
 
     # Register all services
     hass.services.async_register(
@@ -517,6 +541,9 @@ Respond ONLY with the JSON object, nothing else."""
     )
     hass.services.async_register(
         DOMAIN, SERVICE_UPDATE_SANDED, handle_update_sanded, schema=UPDATE_SERVICE_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN, SERVICE_UPDATE_MOWED, handle_update_mowed, schema=UPDATE_SERVICE_SCHEMA
     )
     hass.services.async_register(
         DOMAIN, SERVICE_UPDATE_PROPERTY, handle_update_property, schema=UPDATE_PROPERTY_SCHEMA
@@ -544,6 +571,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.services.async_remove(DOMAIN, SERVICE_UPDATE_AERATED)
         hass.services.async_remove(DOMAIN, SERVICE_UPDATE_HARVESTED)
         hass.services.async_remove(DOMAIN, SERVICE_UPDATE_SANDED)
+        hass.services.async_remove(DOMAIN, SERVICE_UPDATE_MOWED)
         hass.services.async_remove(DOMAIN, SERVICE_UPDATE_PROPERTY)
         hass.services.async_remove(DOMAIN, SERVICE_REFRESH_DATA)
         hass.services.async_remove(DOMAIN, SERVICE_ADD_PLANT)
@@ -806,15 +834,50 @@ async def _create_plant_in_notion(
     if "winterize" in plant_data:
         properties["Winterize"] = {"checkbox": bool(plant_data["winterize"])}
 
+    # URL properties - these may not exist in older databases, so we'll add them separately
+    url_properties = {}
+    if plant_data.get("care_instructions_url"):
+        url_properties["Care Instructions URL"] = {"url": plant_data["care_instructions_url"]}
+    if plant_data.get("prune_instructions_url"):
+        url_properties["Prune Instructions URL"] = {"url": plant_data["prune_instructions_url"]}
+    if plant_data.get("harvest_instructions_url"):
+        url_properties["Harvest Instructions URL"] = {"url": plant_data["harvest_instructions_url"]}
+
+    # Try to create with all properties including URLs
+    all_properties = {**properties, **url_properties}
+
     try:
         await hass.async_add_executor_job(
             lambda: notion.pages.create(
                 parent={"database_id": database_id},
-                properties=properties
+                properties=all_properties
             )
         )
         _LOGGER.info("Created plant '%s' in Notion", plant_data.get("name"))
 
     except APIResponseError as err:
-        _LOGGER.error("Failed to create plant in Notion: %s", err)
-        raise
+        # If it failed and we had URL properties, try again without them
+        # (older databases may not have URL columns)
+        if url_properties and "property" in str(err).lower():
+            _LOGGER.warning(
+                "Failed to create plant with URL properties, retrying without URLs: %s", err
+            )
+            try:
+                await hass.async_add_executor_job(
+                    lambda: notion.pages.create(
+                        parent={"database_id": database_id},
+                        properties=properties
+                    )
+                )
+                _LOGGER.info(
+                    "Created plant '%s' in Notion (without URL properties - "
+                    "add URL columns to your database to enable this feature)",
+                    plant_data.get("name")
+                )
+                return
+            except APIResponseError as retry_err:
+                _LOGGER.error("Failed to create plant in Notion: %s", retry_err)
+                raise
+        else:
+            _LOGGER.error("Failed to create plant in Notion: %s", err)
+            raise

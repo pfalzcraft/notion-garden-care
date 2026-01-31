@@ -133,12 +133,45 @@ class PlantCareCard extends HTMLElement {
   }
 
   /**
-   * Call a service to mark a task as done
+   * Call a service to mark a task as done with visual feedback
    */
-  callService(service, entityId) {
-    this._hass.callService('notion_garden_care', service, {
-      entity_id: entityId
-    });
+  async callService(service, entityId, buttonId) {
+    const button = this.shadowRoot.getElementById(buttonId);
+    if (button) {
+      const originalText = button.innerHTML;
+      button.disabled = true;
+      button.innerHTML = '⏳ Saving...';
+
+      try {
+        await this._hass.callService('notion_garden_care', service, {
+          entity_id: entityId
+        });
+        button.innerHTML = '✓ Done!';
+        button.classList.add('success');
+        setTimeout(() => {
+          button.innerHTML = originalText;
+          button.disabled = false;
+          button.classList.remove('success');
+        }, 2000);
+      } catch (err) {
+        button.innerHTML = '✗ Error';
+        button.classList.add('error');
+        setTimeout(() => {
+          button.innerHTML = originalText;
+          button.disabled = false;
+          button.classList.remove('error');
+        }, 2000);
+      }
+    }
+  }
+
+  /**
+   * Format a date for display (short format)
+   */
+  formatLastDate(dateStr) {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   }
 
   /**
@@ -179,12 +212,19 @@ class PlantCareCard extends HTMLElement {
     if (!state) return;
 
     const attrs = state.attributes;
+    const isLawn = (attrs.type || 'Plant') === 'Lawn';
 
-    // Update care schedule values
+    // Update care schedule values - next dates
     const nextWater = this.formatDueDate(attrs.next_water, 'Water');
     const nextFertilize = this.formatDueDate(attrs.next_fertilize, 'Fertilize');
     const pruneMonths = this.formatMonths(attrs.prune_months);
     const harvestMonths = this.formatMonths(attrs.harvest_months);
+
+    // Update last dates
+    const lastWater = this.formatLastDate(attrs.last_watered);
+    const lastFertilize = this.formatLastDate(attrs.last_fertilized);
+    const lastPruned = this.formatLastDate(attrs.last_pruned);
+    const lastHarvested = this.formatLastDate(attrs.last_harvested);
 
     const waterEl = this.shadowRoot.getElementById('water-value');
     const fertilizeEl = this.shadowRoot.getElementById('fertilize-value');
@@ -192,37 +232,58 @@ class PlantCareCard extends HTMLElement {
     const harvestEl = this.shadowRoot.getElementById('harvest-value');
 
     if (waterEl) {
-      waterEl.textContent = nextWater.text;
-      waterEl.className = `care-value ${nextWater.class}`;
+      waterEl.textContent = `Next: ${nextWater.text}`;
+      waterEl.className = `care-next care-value ${nextWater.class}`;
     }
     if (fertilizeEl) {
-      fertilizeEl.textContent = nextFertilize.text;
-      fertilizeEl.className = `care-value ${nextFertilize.class}`;
+      fertilizeEl.textContent = `Next: ${nextFertilize.text}`;
+      fertilizeEl.className = `care-next care-value ${nextFertilize.class}`;
     }
     if (pruneEl) {
       pruneEl.innerHTML = pruneMonths.html;
-      pruneEl.className = `care-value ${pruneMonths.hasCurrentMonth ? 'due-today' : ''}`;
+      pruneEl.className = `care-next care-value ${pruneMonths.hasCurrentMonth ? 'due-today' : ''}`;
     }
     if (harvestEl) {
       harvestEl.innerHTML = harvestMonths.html;
-      harvestEl.className = `care-value ${harvestMonths.hasCurrentMonth ? 'due-today' : ''}`;
+      harvestEl.className = `care-next care-value ${harvestMonths.hasCurrentMonth ? 'due-today' : ''}`;
     }
 
+    // Update last dates
+    const waterLastEl = this.shadowRoot.getElementById('water-last');
+    const fertilizeLastEl = this.shadowRoot.getElementById('fertilize-last');
+    const pruneLastEl = this.shadowRoot.getElementById('prune-last');
+    const harvestLastEl = this.shadowRoot.getElementById('harvest-last');
+
+    if (waterLastEl) waterLastEl.textContent = `Last: ${lastWater}`;
+    if (fertilizeLastEl) fertilizeLastEl.textContent = `Last: ${lastFertilize}`;
+    if (pruneLastEl) pruneLastEl.textContent = `Last: ${lastPruned}`;
+    if (harvestLastEl) harvestLastEl.textContent = `Last: ${lastHarvested}`;
+
     // Update lawn-specific fields if present
-    const isLawn = (attrs.type || 'Plant') === 'Lawn';
     if (isLawn) {
       const nextAeration = this.formatDueDate(attrs.next_aeration, 'Aeration');
       const nextSanding = this.formatDueDate(attrs.next_sanding, 'Sanding');
+      const lastAeration = this.formatLastDate(attrs.last_aeration);
+      const lastSanding = this.formatLastDate(attrs.last_sanded);
+      const lastMowed = this.formatLastDate(attrs.last_mowed);
+
       const aerationEl = this.shadowRoot.getElementById('aeration-value');
       const sandingEl = this.shadowRoot.getElementById('sanding-value');
+      const aerationLastEl = this.shadowRoot.getElementById('aeration-last');
+      const sandingLastEl = this.shadowRoot.getElementById('sanding-last');
+      const mowedLastEl = this.shadowRoot.getElementById('mowed-last');
+
       if (aerationEl) {
-        aerationEl.textContent = nextAeration.text;
-        aerationEl.className = `care-value ${nextAeration.class}`;
+        aerationEl.textContent = `Next: ${nextAeration.text}`;
+        aerationEl.className = `care-next care-value ${nextAeration.class}`;
       }
       if (sandingEl) {
-        sandingEl.textContent = nextSanding.text;
-        sandingEl.className = `care-value ${nextSanding.class}`;
+        sandingEl.textContent = `Next: ${nextSanding.text}`;
+        sandingEl.className = `care-next care-value ${nextSanding.class}`;
       }
+      if (aerationLastEl) aerationLastEl.textContent = `Last: ${lastAeration}`;
+      if (sandingLastEl) sandingLastEl.textContent = `Last: ${lastSanding}`;
+      if (mowedLastEl) mowedLastEl.textContent = `Last: ${lastMowed}`;
     }
 
     // Update popup table content
@@ -255,13 +316,26 @@ class PlantCareCard extends HTMLElement {
     const location = attrs.location || '';
     const isLawn = plantType === 'Lawn';
 
-    // Get care schedule data
+    // Get care schedule data - next dates
     const nextWater = this.formatDueDate(attrs.next_water, 'Water');
     const nextFertilize = this.formatDueDate(attrs.next_fertilize, 'Fertilize');
     const pruneMonths = this.formatMonths(attrs.prune_months);
     const harvestMonths = this.formatMonths(attrs.harvest_months);
     const nextAeration = isLawn ? this.formatDueDate(attrs.next_aeration, 'Aeration') : null;
     const nextSanding = isLawn ? this.formatDueDate(attrs.next_sanding, 'Sanding') : null;
+
+    // Get last dates
+    const lastWater = this.formatLastDate(attrs.last_watered);
+    const lastFertilize = this.formatLastDate(attrs.last_fertilized);
+    const lastPruned = this.formatLastDate(attrs.last_pruned);
+    const lastHarvested = this.formatLastDate(attrs.last_harvested);
+    const lastAeration = isLawn ? this.formatLastDate(attrs.last_aeration) : null;
+    const lastSanding = isLawn ? this.formatLastDate(attrs.last_sanded) : null;
+    const lastMowed = isLawn ? this.formatLastDate(attrs.last_mowed) : null;
+
+    // Check if plant has prune/harvest capabilities
+    const hasPruneMonths = attrs.prune_months && Array.isArray(attrs.prune_months) && attrs.prune_months.length > 0;
+    const hasHarvestMonths = attrs.harvest_months && Array.isArray(attrs.harvest_months) && attrs.harvest_months.length > 0;
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -357,6 +431,7 @@ class PlantCareCard extends HTMLElement {
         .action-btn {
           display: flex;
           align-items: center;
+          justify-content: center;
           gap: 4px;
           padding: 8px 12px;
           border: none;
@@ -365,13 +440,36 @@ class PlantCareCard extends HTMLElement {
           color: var(--text-primary-color, white);
           cursor: pointer;
           font-size: 0.9em;
-          transition: opacity 0.2s;
+          transition: opacity 0.2s, background 0.2s;
+          min-width: 90px;
         }
-        .action-btn:hover {
+        .action-btn:hover:not(:disabled) {
           opacity: 0.85;
         }
-        .action-btn:active {
+        .action-btn:active:not(:disabled) {
           opacity: 0.7;
+        }
+        .action-btn:disabled {
+          opacity: 0.7;
+          cursor: wait;
+        }
+        .action-btn.success {
+          background: #4CAF50;
+        }
+        .action-btn.error {
+          background: #f44336;
+        }
+        .care-dates {
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+        }
+        .care-next {
+          color: var(--secondary-text-color);
+        }
+        .care-last {
+          font-size: 0.8em;
+          color: var(--disabled-text-color, #999);
         }
         .info-icon {
           cursor: pointer;
@@ -466,33 +564,62 @@ class PlantCareCard extends HTMLElement {
           <div class="care-row">
             <span class="care-icon">💧</span>
             <span class="care-label">Water</span>
-            <span class="care-value ${nextWater.class}" id="water-value">${nextWater.text}</span>
+            <div class="care-dates">
+              <span class="care-next care-value ${nextWater.class}" id="water-value">Next: ${nextWater.text}</span>
+              <span class="care-last" id="water-last">Last: ${lastWater}</span>
+            </div>
           </div>
           <div class="care-row">
             <span class="care-icon">🧪</span>
             <span class="care-label">Fertilize</span>
-            <span class="care-value ${nextFertilize.class}" id="fertilize-value">${nextFertilize.text}</span>
+            <div class="care-dates">
+              <span class="care-next care-value ${nextFertilize.class}" id="fertilize-value">Next: ${nextFertilize.text}</span>
+              <span class="care-last" id="fertilize-last">Last: ${lastFertilize}</span>
+            </div>
           </div>
+          ${hasPruneMonths ? `
           <div class="care-row">
             <span class="care-icon">✂️</span>
             <span class="care-label">Prune</span>
-            <span class="care-value ${pruneMonths.hasCurrentMonth ? 'due-today' : ''}" id="prune-value">${pruneMonths.html}</span>
+            <div class="care-dates">
+              <span class="care-next care-value ${pruneMonths.hasCurrentMonth ? 'due-today' : ''}" id="prune-value">${pruneMonths.html}</span>
+              <span class="care-last" id="prune-last">Last: ${lastPruned}</span>
+            </div>
           </div>
+          ` : ''}
+          ${hasHarvestMonths ? `
           <div class="care-row">
             <span class="care-icon">🍎</span>
             <span class="care-label">Harvest</span>
-            <span class="care-value ${harvestMonths.hasCurrentMonth ? 'due-today' : ''}" id="harvest-value">${harvestMonths.html}</span>
+            <div class="care-dates">
+              <span class="care-next care-value ${harvestMonths.hasCurrentMonth ? 'due-today' : ''}" id="harvest-value">${harvestMonths.html}</span>
+              <span class="care-last" id="harvest-last">Last: ${lastHarvested}</span>
+            </div>
           </div>
+          ` : ''}
           ${isLawn ? `
           <div class="care-row">
             <span class="care-icon">🌱</span>
             <span class="care-label">Aeration</span>
-            <span class="care-value ${nextAeration.class}" id="aeration-value">${nextAeration.text}</span>
+            <div class="care-dates">
+              <span class="care-next care-value ${nextAeration.class}" id="aeration-value">Next: ${nextAeration.text}</span>
+              <span class="care-last" id="aeration-last">Last: ${lastAeration}</span>
+            </div>
           </div>
           <div class="care-row">
             <span class="care-icon">🏖️</span>
             <span class="care-label">Sanding</span>
-            <span class="care-value ${nextSanding.class}" id="sanding-value">${nextSanding.text}</span>
+            <div class="care-dates">
+              <span class="care-next care-value ${nextSanding.class}" id="sanding-value">Next: ${nextSanding.text}</span>
+              <span class="care-last" id="sanding-last">Last: ${lastSanding}</span>
+            </div>
+          </div>
+          <div class="care-row">
+            <span class="care-icon">🚜</span>
+            <span class="care-label">Mowed</span>
+            <div class="care-dates">
+              <span class="care-last" id="mowed-last">Last: ${lastMowed}</span>
+            </div>
           </div>
           ` : ''}
         </div>
@@ -504,15 +631,25 @@ class PlantCareCard extends HTMLElement {
           <button class="action-btn" id="btn-fertilize">
             🧪 Fertilized
           </button>
+          ${hasPruneMonths ? `
           <button class="action-btn" id="btn-prune">
             ✂️ Pruned
           </button>
+          ` : ''}
+          ${hasHarvestMonths ? `
+          <button class="action-btn" id="btn-harvest">
+            🍎 Harvested
+          </button>
+          ` : ''}
           ${isLawn ? `
           <button class="action-btn" id="btn-aerate">
             🌱 Aerated
           </button>
           <button class="action-btn" id="btn-sand">
             🏖️ Sanded
+          </button>
+          <button class="action-btn" id="btn-mow">
+            🚜 Mowed
           </button>
           ` : ''}
         </div>
@@ -559,19 +696,25 @@ class PlantCareCard extends HTMLElement {
     // Add event listeners for buttons
     const entityIdForService = entityId;
     this.shadowRoot.getElementById('btn-water')?.addEventListener('click', () => {
-      this.callService('mark_as_watered', entityIdForService);
+      this.callService('mark_as_watered', entityIdForService, 'btn-water');
     });
     this.shadowRoot.getElementById('btn-fertilize')?.addEventListener('click', () => {
-      this.callService('mark_as_fertilized', entityIdForService);
+      this.callService('mark_as_fertilized', entityIdForService, 'btn-fertilize');
     });
     this.shadowRoot.getElementById('btn-prune')?.addEventListener('click', () => {
-      this.callService('mark_as_pruned', entityIdForService);
+      this.callService('mark_as_pruned', entityIdForService, 'btn-prune');
+    });
+    this.shadowRoot.getElementById('btn-harvest')?.addEventListener('click', () => {
+      this.callService('mark_as_harvested', entityIdForService, 'btn-harvest');
     });
     this.shadowRoot.getElementById('btn-aerate')?.addEventListener('click', () => {
-      this.callService('mark_as_aerated', entityIdForService);
+      this.callService('mark_as_aerated', entityIdForService, 'btn-aerate');
     });
     this.shadowRoot.getElementById('btn-sand')?.addEventListener('click', () => {
-      this.callService('mark_as_sanded', entityIdForService);
+      this.callService('mark_as_sanded', entityIdForService, 'btn-sand');
+    });
+    this.shadowRoot.getElementById('btn-mow')?.addEventListener('click', () => {
+      this.callService('mark_as_mowed', entityIdForService, 'btn-mow');
     });
   }
 }

@@ -166,7 +166,7 @@ Understanding when plants appear in each sensor:
 
 ### Services
 
-Update your plants from Home Assistant (10 services available):
+Update your plants from Home Assistant (11 services available):
 
 ```yaml
 # Mark plant as watered (today)
@@ -202,6 +202,11 @@ data:
 
 # Mark lawn as sanded
 service: notion_garden_care.mark_as_sanded
+data:
+  plant_name: "Lawn"
+
+# Mark lawn as mowed
+service: notion_garden_care.mark_as_mowed
 data:
   plant_name: "Lawn"
 
@@ -269,6 +274,7 @@ The AI will automatically fill in:
 - Toxicity warnings
 - Winter protection requirements
 - Care instructions and special notes
+- **URLs to care guides** (care, pruning, and harvesting instructions from reputable gardening sites)
 
 ### Automation Blueprints
 
@@ -288,8 +294,8 @@ Set up reminders in seconds:
 When you install the integration, a **Garden Care** dashboard is automatically created and appears in your sidebar. This dashboard uses the `custom:garden-care` strategy to auto-populate with all your plants.
 
 The dashboard includes:
-- **Plants View** - Add Plant form + individual cards for each plant
-- **Overview View** - Statistics and task summaries
+- **Add Plant Form** - Easy form to add new plants at the top
+- **Plant Cards** - Individual cards for each plant with care schedules and action buttons
 
 ### Add Plant Card
 
@@ -305,14 +311,14 @@ At the top of the Plants view, you'll find the **Add Plant** form:
 Each plant card displays:
 - Plant name with type-specific icon (flower, tree, vegetable, etc.)
 - Location badge
-- Care schedule:
-  - Water: Next date with days until/overdue indicator
-  - Fertilize: Next date with days until/overdue
-  - Prune: Months (highlighted if current month)
-  - Harvest: Months (highlighted if current month)
-  - Aeration/Sanding: For lawns only
+- Care schedule with both **Next** and **Last** dates:
+  - Water: Next date with days until/overdue indicator + last watered date
+  - Fertilize: Next date with days until/overdue + last fertilized date
+  - Prune: Months (highlighted if current month) + last pruned date (only shown if plant has prune months)
+  - Harvest: Months (highlighted if current month) + last harvested date (only shown if plant has harvest months)
+  - Aeration/Sanding/Mowed: For lawns only
 - **Info button** - Click to see all plant attributes in a popup
-- **Action buttons** - Mark tasks as complete (Watered, Fertilized, Pruned)
+- **Action buttons** - Mark tasks as complete with visual feedback (loading spinner, success/error states)
 
 ### Manual Dashboard Setup
 
@@ -441,9 +447,13 @@ The integration creates these properties automatically:
 - **Sanding Interval (days)** - Days between sanding
 - **Last Sanded** - Date of last sanding
 - **Next Sanding** - Auto-calculated ✨
+- **Last Mowed** - Date of last mowing
 
-### Notes
+### Notes & Instructions
 - **Care Instructions** - General care tips
+- **Care Instructions URL** - Link to detailed care guide
+- **Prune Instructions URL** - Link to pruning guide
+- **Harvest Instructions URL** - Link to harvesting guide
 - **Special Notes** - Special requirements
 - **Notes** - Free-form notes
 

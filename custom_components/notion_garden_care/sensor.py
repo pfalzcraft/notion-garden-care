@@ -111,7 +111,7 @@ def _fetch_database_data(notion_token: str, database_id: str) -> dict[str, Any]:
         return data
     except httpx.HTTPError as err:
         _LOGGER.error("Error in _fetch_database_data: %s", err, exc_info=True)
-        raise APIResponseError(str(err)) from err
+        raise Exception(f"Notion API error: {err}") from err
     except Exception as err:
         _LOGGER.error("Unexpected error in _fetch_database_data: %s", err, exc_info=True)
         raise

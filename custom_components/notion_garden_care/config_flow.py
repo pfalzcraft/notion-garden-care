@@ -297,6 +297,7 @@ def _create_database_sync(notion: Client, parent_page_id: str) -> dict:
                     "expression": 'dateAdd(prop("Last Sanded"), prop("Sanding Interval (days)"), "days")'
                 }
             },
+            "Last Mowed": {"type": "date", "date": {}},
             # ══════════════════════════════════════════════════════════════
             # COMPANIONS & SAFETY
             # ══════════════════════════════════════════════════════════════
@@ -314,9 +315,12 @@ def _create_database_sync(notion: Client, parent_page_id: str) -> dict:
             },
             "Winterize": {"type": "checkbox", "checkbox": {}},
             # ══════════════════════════════════════════════════════════════
-            # NOTES
+            # NOTES & INSTRUCTIONS
             # ══════════════════════════════════════════════════════════════
             "Care Instructions": {"type": "rich_text", "rich_text": {}},
+            "Care Instructions URL": {"type": "url", "url": {}},
+            "Prune Instructions URL": {"type": "url", "url": {}},
+            "Harvest Instructions URL": {"type": "url", "url": {}},
             "Special Notes": {"type": "rich_text", "rich_text": {}},
             "Notes": {"type": "rich_text", "rich_text": {}}
             }
