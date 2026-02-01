@@ -16,6 +16,9 @@ All notable changes to the Notion Garden Care integration will be documented in 
   - Moved directory scanning to executor thread
   - Moved Notion client initialization to executor thread
 - **HA 2026.2 Compatibility**: Fixed deprecation warning for lovelace data access
+- **Database Sensor Size**: Fixed "State attributes exceed maximum size of 16384 bytes" warning
+  - Database sensor now stores only summary data instead of full raw Notion API response
+  - Includes plant names, types, active status, and page IDs
 
 ---
 

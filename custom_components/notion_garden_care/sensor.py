@@ -118,7 +118,7 @@ def _fetch_database_data(notion_token: str, database_id: str) -> dict[str, Any]:
 
 
 class NotionGardenCareDatabaseSensor(CoordinatorEntity, SensorEntity):
-    """Sensor for the raw Notion database data."""
+    """Sensor for the Notion database summary."""
 
     def __init__(self, coordinator: DataUpdateCoordinator) -> None:
         """Initialize the sensor."""
@@ -136,13 +136,45 @@ class NotionGardenCareDatabaseSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """Return the state attributes."""
-        if self.coordinator.data:
-            return {
-                "results": self.coordinator.data.get("results", []),
-                "has_more": self.coordinator.data.get("has_more", False),
-            }
-        return {}
+        """Return summary attributes (not full raw data to avoid exceeding 16KB limit)."""
+        if not self.coordinator.data:
+            return {}
+
+        results = self.coordinator.data.get("results", [])
+
+        # Extract plant names and basic info only
+        plants_summary = []
+        for plant in results:
+            try:
+                name_prop = plant.get("properties", {}).get("Name", {})
+                name = None
+                if name_prop.get("title") and len(name_prop["title"]) > 0:
+                    name = name_prop["title"][0].get("plain_text")
+
+                type_prop = plant.get("properties", {}).get("Type", {})
+                plant_type = None
+                if type_prop.get("select"):
+                    plant_type = type_prop["select"].get("name")
+
+                active_prop = plant.get("properties", {}).get("Active", {})
+                active = active_prop.get("checkbox", False)
+
+                if name:
+                    plants_summary.append({
+                        "name": name,
+                        "type": plant_type,
+                        "active": active,
+                        "page_id": plant.get("id"),
+                    })
+            except (KeyError, TypeError, IndexError):
+                continue
+
+        return {
+            "plant_count": len(results),
+            "plants": [p["name"] for p in plants_summary],
+            "plants_summary": plants_summary,
+            "has_more": self.coordinator.data.get("has_more", False),
+        }
 
 
 class PlantsToWaterSensor(CoordinatorEntity, SensorEntity):
