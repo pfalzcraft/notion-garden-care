@@ -33,3 +33,7 @@ ha-test-config/
 ha-test-hacs-config/
 ha-test-hacs-config-backup*/
 homeassistant/
+
+# Test scripts
+debug_sensors.py
+test_*.py
