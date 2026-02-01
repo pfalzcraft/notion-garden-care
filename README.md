@@ -39,9 +39,15 @@ Manage your garden with Notion and automate reminders with Home Assistant. Track
 - 📈 **Growth per Year** - Annual growth rate
 - ❄️ **Winterize** - Winter protection requirements
 
-## 🚀 Quick Start (3 Steps!)
+## 🚀 Quick Start
 
-### Step 1: Create Notion Integration (2 minutes)
+### Step 1: Create a Notion Account (if you don't have one)
+
+1. Go to [https://www.notion.so/signup](https://www.notion.so/signup)
+2. Sign up for a free account (email or Google/Apple)
+3. Complete the onboarding
+
+### Step 2: Create Notion Integration (2 minutes)
 
 1. Go to [https://www.notion.so/my-integrations](https://www.notion.so/my-integrations)
 2. Click **"+ New integration"**
@@ -49,7 +55,7 @@ Manage your garden with Notion and automate reminders with Home Assistant. Track
 4. Click **"Submit"**
 5. **Copy the token** (starts with `secret_...` or `ntn_...`)
 
-### Step 2: Create a Page in Notion (1 minute)
+### Step 3: Create a Page in Notion (1 minute)
 
 1. Open Notion
 2. Create a new blank page (e.g., "Gardening" or "Home Assistant")
@@ -60,7 +66,7 @@ Manage your garden with Notion and automate reminders with Home Assistant. Track
    - Confirm
 4. **Copy the page URL** from your browser
 
-### Step 3: Install & Configure in Home Assistant (3 minutes)
+### Step 4: Install & Configure in Home Assistant (3 minutes)
 
 #### Install the Integration
 
@@ -100,7 +106,40 @@ The integration will:
 - ✅ Add 5 example plants (Tomatoes, Rose, Apple Tree, Basil, Lawn)
 - ✅ Create 5 aggregate sensors in Home Assistant
 - ✅ Create individual sensors for each plant (if enabled)
-- ✅ Register 4 services for plant updates
+- ✅ Register services for plant updates
+- ✅ Register frontend resources automatically (custom cards and dashboard strategy)
+
+### Step 5: Configure AI Agent (Optional - Recommended)
+
+To get the full potential of the integration, configure an AI conversation agent for automatic plant care information:
+
+1. **Install a Conversation Agent** (if you don't have one):
+   - Go to **Settings** → **Devices & Services** → **Add Integration**
+   - Add one of: **OpenAI Conversation**, **Google Generative AI**, **Anthropic**, or any other AI agent
+   - Configure the agent with your API key
+
+2. **Connect to Garden Care:**
+   - Go to **Settings** → **Devices & Services**
+   - Find **Notion Garden Care** → Click **Configure** (gear icon)
+   - Select your **Conversation Agent** from the dropdown
+   - Click **Submit**
+
+3. **Add Plants with AI:**
+   - Use the **Add Plant** form on the dashboard, or call the service:
+   ```yaml
+   service: notion_garden_care.add_plant
+   data:
+     plant_name: "Lavender"
+   ```
+   - The AI will automatically fill in all care details (watering schedule, sun exposure, pruning months, etc.)
+
+### Verify Resources (if cards don't appear)
+
+The integration automatically registers frontend resources. If custom cards don't appear:
+
+1. Open browser **Developer Tools** (F12) → **Console**
+2. Look for: `PLANT-CARE-CARD Loaded` and `GARDEN-CARE-STRATEGY Loaded`
+3. If missing, see [Add Resources Manually](#add-resources-manually-if-needed) section below
 
 ## 📊 What You Get
 
