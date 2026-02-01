@@ -2,6 +2,24 @@
 
 All notable changes to the Notion Garden Care integration will be documented in this file.
 
+## [1.7.0] - 2026-02-01
+
+### Changed
+- **Documentation Updates**: Improved Quick Start guide
+  - Added Step 1: Create a Notion account (for new users)
+  - Added Step 5: Configure AI Agent (optional but recommended)
+  - Added "Verify Resources" troubleshooting section
+- **Terminology Update**: Updated documentation to use "actions" instead of "services" (Home Assistant 2024+ terminology)
+  - Button examples now use `perform-action` syntax
+  - Developer Tools references updated
+
+### Fixed
+- **Repository Cleanup**: Removed test files and folders from git tracking
+  - Removed `homeassistant/config/` test files
+  - Updated `.gitignore` to exclude test scripts and Docker config folders
+
+---
+
 ## [1.6.2] - 2026-02-01
 
 ### Changed

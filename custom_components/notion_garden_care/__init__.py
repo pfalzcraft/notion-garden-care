@@ -48,7 +48,7 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 URL_BASE = "/notion-garden-care"
-FRONTEND_VERSION = "1.6.2"
+FRONTEND_VERSION = "1.7.0"
 
 # This integration can only be set up via config entries
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
