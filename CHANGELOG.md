@@ -2,6 +2,21 @@
 
 All notable changes to the Notion Garden Care integration will be documented in this file.
 
+## [1.6.1] - 2026-01-31
+
+### Changed
+- **Dashboard Setup**: The integration no longer auto-creates the dashboard entry (which caused issues with HA's internal state). Instead, it:
+  - Creates the `garden-care.yaml` configuration file automatically
+  - Shows a persistent notification with setup instructions
+  - Users need to manually add the dashboard once via Settings → Dashboards → Add Dashboard (YAML mode)
+- This change ensures the dashboard works reliably across all HA installations
+
+### Fixed
+- **Dashboard Strategy**: Fixed issue where auto-created dashboard would show "original-states" instead of the custom strategy
+- Cleans up old `garden-care-dashboard.yaml` and `lovelace.garden-care` files from previous versions
+
+---
+
 ## [1.6.0] - 2026-01-31
 
 ### Fixed

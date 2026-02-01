@@ -289,9 +289,20 @@ Set up reminders in seconds:
 
 ## 📱 Dashboard
 
-### Auto-Created Dashboard
+### Dashboard Setup
 
-When you install the integration, a **Garden Care** dashboard is automatically created and appears in your sidebar. This dashboard uses the `custom:garden-care` strategy to auto-populate with all your plants.
+When you install the integration, it creates a `garden-care.yaml` configuration file and shows a notification with setup instructions.
+
+**One-time setup** (takes 30 seconds):
+1. Go to **Settings → Dashboards**
+2. Click **Add Dashboard**
+3. Enter Title: `Garden Care`
+4. Enter Icon: `mdi:flower`
+5. Select **YAML** mode
+6. Enter Filename: `garden-care.yaml`
+7. Click **Create**
+
+The dashboard will appear in your sidebar and automatically show all your plants using the `custom:garden-care` strategy.
 
 The dashboard includes:
 - **Add Plant Form** - Easy form to add new plants at the top

@@ -48,7 +48,7 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 URL_BASE = "/notion-garden-care"
-FRONTEND_VERSION = "1.6.0"
+FRONTEND_VERSION = "1.6.1"
 
 # This integration can only be set up via config entries
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -142,7 +142,7 @@ async def _async_register_frontend(hass: HomeAssistant) -> None:
 
 
 async def _async_create_dashboard(hass: HomeAssistant) -> None:
-    """Create the Garden Care dashboard with strategy using YAML mode."""
+    """Create the Garden Care dashboard YAML file and notify user to add dashboard."""
     if hass.data[DOMAIN].get("dashboard_created"):
         return
 
@@ -152,79 +152,79 @@ async def _async_create_dashboard(hass: HomeAssistant) -> None:
         import os
 
         # Create the YAML config file for the dashboard
-        yaml_config = """# Garden Care Dashboard - Auto-generated
-# Uses custom:garden-care strategy to auto-generate plant cards
-
-strategy:
+        yaml_config = """strategy:
   type: custom:garden-care
 """
-        yaml_path = hass.config.path("garden-care-dashboard.yaml")
+        yaml_path = hass.config.path("garden-care.yaml")
 
-        # Always write the YAML file (it's our source of truth)
-        await hass.async_add_executor_job(_write_file, yaml_path, yaml_config)
-        _LOGGER.debug("Created/updated garden-care-dashboard.yaml")
+        # Create or update the YAML file
+        yaml_exists = await hass.async_add_executor_job(os.path.exists, yaml_path)
+        if not yaml_exists:
+            await hass.async_add_executor_job(_write_file, yaml_path, yaml_config)
+            _LOGGER.info("Created garden-care.yaml dashboard config")
 
         # Delete any old storage-mode dashboard config file (from previous versions)
         old_storage_config = hass.config.path(".storage/lovelace.garden-care")
-        if os.path.exists(old_storage_config):
+        if await hass.async_add_executor_job(os.path.exists, old_storage_config):
             await hass.async_add_executor_job(os.remove, old_storage_config)
             _LOGGER.info("Removed old storage-mode dashboard config")
 
-        # Now register the dashboard entry with mode: yaml
+        # Also remove old garden-care-dashboard.yaml if it exists
+        old_yaml_path = hass.config.path("garden-care-dashboard.yaml")
+        if await hass.async_add_executor_job(os.path.exists, old_yaml_path):
+            await hass.async_add_executor_job(os.remove, old_yaml_path)
+            _LOGGER.info("Removed old garden-care-dashboard.yaml")
+
+        # Check if dashboard already exists in lovelace_dashboards
         storage_path = hass.config.path(".storage/lovelace_dashboards")
+        dashboard_exists = False
 
-        def _update_dashboards():
-            dashboards_data = {"version": 1, "minor_version": 1, "key": "lovelace_dashboards", "data": {"items": []}}
+        def _check_dashboard():
+            if not os.path.exists(storage_path):
+                return False
+            try:
+                with open(storage_path, "r") as f:
+                    data = json.load(f)
+                items = data.get("data", {}).get("items", [])
+                return any(
+                    item.get("filename") == "garden-care.yaml"
+                    for item in items
+                )
+            except (json.JSONDecodeError, KeyError):
+                return False
 
-            if os.path.exists(storage_path):
-                try:
-                    with open(storage_path, "r") as f:
-                        dashboards_data = json.load(f)
-                except (json.JSONDecodeError, KeyError):
-                    pass
+        dashboard_exists = await hass.async_add_executor_job(_check_dashboard)
 
-            items = dashboards_data.get("data", {}).get("items", [])
-
-            # Check if garden-care entry exists and has correct mode
-            existing = next((item for item in items if item.get("url_path") == "garden-care"), None)
-
-            if existing and existing.get("mode") == "yaml" and existing.get("filename") == "garden-care-dashboard.yaml":
-                _LOGGER.debug("Garden Care dashboard already configured correctly")
-                return True
-
-            # Remove any existing garden-care entry (might have wrong mode)
-            items = [item for item in items if item.get("url_path") != "garden-care"]
-
-            # Add with YAML mode pointing to our config file
-            items.append({
-                "id": "garden_care",
-                "url_path": "garden-care",
-                "mode": "yaml",
-                "title": "Garden Care",
-                "icon": "mdi:flower",
-                "show_in_sidebar": True,
-                "require_admin": False,
-                "filename": "garden-care-dashboard.yaml",
-            })
-
-            dashboards_data["data"]["items"] = items
-
-            with open(storage_path, "w") as f:
-                json.dump(dashboards_data, f, indent=2)
-
-            _LOGGER.info("Updated lovelace_dashboards with YAML mode entry")
-            return True
-
-        await hass.async_add_executor_job(_update_dashboards)
-        _LOGGER.info("Registered Garden Care dashboard (YAML mode)")
+        if not dashboard_exists:
+            # Show persistent notification to guide user
+            await hass.services.async_call(
+                "persistent_notification",
+                "create",
+                {
+                    "title": "🌱 Garden Care Dashboard Setup",
+                    "message": (
+                        "To complete setup, please create the Garden Care dashboard:\n\n"
+                        "1. Go to **Settings → Dashboards**\n"
+                        "2. Click **Add Dashboard**\n"
+                        "3. Enter Title: `Garden Care`\n"
+                        "4. Enter Icon: `mdi:flower`\n"
+                        "5. Select **YAML** mode\n"
+                        "6. Enter Filename: `garden-care.yaml`\n"
+                        "7. Click **Create**\n\n"
+                        "The configuration file has already been created for you."
+                    ),
+                    "notification_id": "notion_garden_care_setup",
+                },
+            )
+            _LOGGER.info(
+                "Please create the Garden Care dashboard manually: "
+                "Settings -> Dashboards -> Add Dashboard -> YAML mode -> filename: garden-care.yaml"
+            )
+        else:
+            _LOGGER.debug("Garden Care dashboard already exists")
 
     except Exception as err:
-        _LOGGER.warning("Could not create dashboard: %s", err)
-        _LOGGER.info(
-            "To create the Garden Care dashboard manually:\n"
-            "1. Go to Settings -> Dashboards -> Add Dashboard\n"
-            "2. Set mode to YAML and filename to garden-care-dashboard.yaml"
-        )
+        _LOGGER.warning("Could not set up dashboard: %s", err)
 
 
 def _write_file(path: str, content: str) -> None:
