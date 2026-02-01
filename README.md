@@ -106,7 +106,7 @@ The integration will:
 - ✅ Add 5 example plants (Tomatoes, Rose, Apple Tree, Basil, Lawn)
 - ✅ Create 5 aggregate sensors in Home Assistant
 - ✅ Create individual sensors for each plant (if enabled)
-- ✅ Register services for plant updates
+- ✅ Register actions for plant updates
 - ✅ Register frontend resources automatically (custom cards and dashboard strategy)
 
 ### Step 5: Configure AI Agent (Optional - Recommended)
@@ -125,7 +125,7 @@ To get the full potential of the integration, configure an AI conversation agent
    - Click **Submit**
 
 3. **Add Plants with AI:**
-   - Use the **Add Plant** form on the dashboard, or call the service:
+   - Use the **Add Plant** form on the dashboard, or call the action:
    ```yaml
    service: notion_garden_care.add_plant
    data:
@@ -203,9 +203,9 @@ Understanding when plants appear in each sensor:
 - **Attributes:** Contains full raw data from Notion
 - **Note:** All plants are counted regardless of active status
 
-### Services
+### Actions
 
-Update your plants from Home Assistant (11 services available):
+Update your plants from Home Assistant (11 actions available):
 
 ```yaml
 # Mark plant as watered (today)
@@ -249,7 +249,7 @@ service: notion_garden_care.mark_as_mowed
 data:
   plant_name: "Lawn"
 
-# Update any property (generic service with dropdown)
+# Update any property (generic action with dropdown)
 service: notion_garden_care.update_plant_property
 data:
   entity_id: sensor.garden_care_tomatoes
@@ -265,20 +265,20 @@ data:
 service: notion_garden_care.refresh_database
 ```
 
-#### Service Parameters
+#### Action Parameters
 
-All `mark_as_*` services accept:
+All `mark_as_*` actions accept:
 - `entity_id` (entity selector) - Select plant from dropdown (or)
 - `plant_name` (string) - Name of the plant (or)
 - `page_id` (string) - Notion page ID
 - `date` (optional) - Date in YYYY-MM-DD format (defaults to today)
 
-The `update_plant_property` service accepts:
+The `update_plant_property` action accepts:
 - `entity_id`, `plant_name`, or `page_id` - To identify the plant
 - `property_name` (required) - Select from dropdown with all available properties
 - `property_value` (required) - Value to set (auto-detects type: number, checkbox, date, multi-select, or text)
 
-The `add_plant` service accepts:
+The `add_plant` action accepts:
 - `plant_name` (required) - Name of the plant to add (AI will fill in all care details)
 
 ### AI-Powered Plant Addition
@@ -545,7 +545,7 @@ The integration creates these properties automatically:
 **Solution:**
 1. Check if integration is connected in Notion (see above)
 2. Verify token is correct
-3. Call `notion_garden_care.refresh_database` service
+3. Call `notion_garden_care.refresh_database` action
 4. Check Home Assistant logs
 
 ## 📝 Example Use Cases
@@ -575,9 +575,9 @@ automation:
 type: button
 name: Water Tomatoes
 tap_action:
-  action: call-service
-  service: notion_garden_care.mark_as_watered
-  service_data:
+  action: perform-action
+  perform_action: notion_garden_care.mark_as_watered
+  data:
     plant_name: Tomatoes
 icon: mdi:watering-can
 ```

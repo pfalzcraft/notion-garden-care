@@ -169,7 +169,7 @@ sensor.plants_to_water:
 2. Verify "Water Interval (days)" has a number value
 3. Confirm "Next Water" formula shows a date (not blank or error)
 4. Check formula syntax: `dateAdd(prop("Last Watered"), prop("Water Interval (days)"), "days")`
-5. Call service `notion_garden_care.refresh_database` to force update
+5. Call action `notion_garden_care.refresh_database` to force update
 
 ---
 
@@ -369,7 +369,7 @@ Force an immediate update anytime:
 service: notion_garden_care.refresh_database
 ```
 
-Or use Developer Tools → Services → `notion_garden_care.refresh_database` → Call Service
+Or use Developer Tools → Actions → `notion_garden_care.refresh_database` → Perform Action
 
 ---
 
@@ -450,7 +450,7 @@ If the formula is invalid or has missing data:
 **Cause:** Update coordinator not refreshing
 
 **Fix:**
-1. Call `notion_garden_care.refresh_database` service
+1. Call `notion_garden_care.refresh_database` action
 2. Restart Home Assistant
 3. Check Home Assistant logs for errors
 
