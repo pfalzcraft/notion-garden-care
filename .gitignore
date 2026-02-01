@@ -27,3 +27,9 @@ Thumbs.db
 *.db
 *.db-shm
 *.db-wal
+
+# Test/Docker config folders
+ha-test-config/
+ha-test-hacs-config/
+ha-test-hacs-config-backup*/
+homeassistant/
