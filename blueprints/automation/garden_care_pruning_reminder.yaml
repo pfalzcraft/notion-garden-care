@@ -18,9 +18,9 @@ blueprint:
           min: 1
           max: 28
           mode: slider
-    notification_service:
-      name: Notification Service
-      description: Which notification service to use?
+    notification_action:
+      name: Notification Action
+      description: Which notification action to use?
       default: notify.notify
       selector:
         text:
@@ -31,19 +31,19 @@ blueprint:
       selector:
         text:
 
-trigger:
-  - platform: time
+triggers:
+  - trigger: time
     at: !input notification_time
 
-condition:
+conditions:
   - condition: template
     value_template: "{{ now().day == notification_day }}"
   - condition: numeric_state
     entity_id: sensor.plants_to_prune
     above: 0
 
-action:
-  - service: !input notification_service
+actions:
+  - action: !input notification_action
     data:
       title: !input notification_title
       message: >

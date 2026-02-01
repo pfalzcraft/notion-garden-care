@@ -273,8 +273,8 @@ todo:
     - condition: numeric_state
       entity_id: sensor.pflanzen_zu_dungen
       above: 0
-  action:
-    - service: notify.notify
+  actions:
+    - action: notify.notify
       data:
         title: "Gartenpflege: Düngung fällig"
         message: >
@@ -287,15 +287,15 @@ todo:
 ```yaml
 - id: notify_water_plants
   alias: "Benachrichtigung: Pflanzen gießen"
-  trigger:
-    - platform: time
+  triggers:
+    - trigger: time
       at: "07:00:00"
-  condition:
+  conditions:
     - condition: numeric_state
       entity_id: sensor.pflanzen_zu_giessen
       above: 0
-  action:
-    - service: notify.notify
+  actions:
+    - action: notify.notify
       data:
         title: "Gartenpflege: Gießen erforderlich"
         message: >
@@ -308,17 +308,17 @@ todo:
 ```yaml
 - id: notify_prune_plants
   alias: "Benachrichtigung: Pflanzen schneiden"
-  trigger:
-    - platform: time
+  triggers:
+    - trigger: time
       at: "08:00:00"
-    - platform: state
+    - trigger: state
       entity_id: sensor.pflanzen_zu_schneiden
-  condition:
+  conditions:
     - condition: numeric_state
       entity_id: sensor.pflanzen_zu_schneiden
       above: 0
-  action:
-    - service: notify.notify
+  actions:
+    - action: notify.notify
       data:
         title: "Gartenpflege: Rückschnitt im {{ now().strftime('%B') }}"
         message: >
@@ -331,15 +331,15 @@ todo:
 ```yaml
 - id: create_garden_todos
   alias: "Erstelle Gartenpflege To-Dos"
-  trigger:
-    - platform: time
+  triggers:
+    - trigger: time
       at: "06:00:00"
-  action:
+  actions:
     # Düngung
     - repeat:
         count: "{{ state_attr('sensor.pflanzen_zu_dungen', 'plants') | length }}"
         sequence:
-          - service: todo.add_item
+          - action: todo.add_item
             target:
               entity_id: todo.gartenpflege_aufgaben
             data:
@@ -350,7 +350,7 @@ todo:
     - repeat:
         count: "{{ state_attr('sensor.pflanzen_zu_giessen', 'plants') | length }}"
         sequence:
-          - service: todo.add_item
+          - action: todo.add_item
             target:
               entity_id: todo.gartenpflege_aufgaben
             data:

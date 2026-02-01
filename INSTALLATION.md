@@ -188,12 +188,12 @@ Copy automations from `homeassistant/config/automations.yaml` to your automation
 
 ---
 
-## 🔧 Services Usage
+## 🔧 Actions Usage
 
 ### Mark Plant as Watered
 
 ```yaml
-service: notion_garden_care.mark_as_watered
+action: notion_garden_care.mark_as_watered
 data:
   plant_name: "Tomatoes"  # or use page_id instead
 ```
@@ -201,7 +201,7 @@ data:
 ### Mark Plant as Fertilized
 
 ```yaml
-service: notion_garden_care.mark_as_fertilized
+action: notion_garden_care.mark_as_fertilized
 data:
   page_id: "abc123def456"  # or use plant_name instead
 ```
@@ -209,7 +209,7 @@ data:
 ### Mark Plant as Pruned
 
 ```yaml
-service: notion_garden_care.mark_as_pruned
+action: notion_garden_care.mark_as_pruned
 data:
   plant_name: "Rose Bush"
 ```
@@ -217,7 +217,7 @@ data:
 ### Refresh Database
 
 ```yaml
-service: notion_garden_care.refresh_database
+action: notion_garden_care.refresh_database
 ```
 
 ---
