@@ -618,7 +618,17 @@ Your support helps keep this project maintained and improved!
 
 ## 📸 Screenshots
 
-*Coming soon - Add your screenshots!*
+### Dashboard Overview
+The Garden Care dashboard shows all your plants with care schedules and action buttons.
+
+![Dashboard](screenshots/dashboard.png)
+
+### Plant Details
+Click on any plant to see detailed information including care schedules, location, and all attributes.
+
+![Plant Details - Care Information](screenshots/plant_details1.png)
+
+![Plant Details - Additional Info](screenshots/plant_details2.png)
 
 ---
 
