@@ -127,7 +127,7 @@ To get the full potential of the integration, configure an AI conversation agent
 3. **Add Plants with AI:**
    - Use the **Add Plant** form on the dashboard, or call the action:
    ```yaml
-   service: notion_garden_care.add_plant
+   action: notion_garden_care.add_plant
    data:
      plant_name: "Lavender"
    ```
@@ -209,60 +209,60 @@ Update your plants from Home Assistant (11 actions available):
 
 ```yaml
 # Mark plant as watered (today)
-service: notion_garden_care.mark_as_watered
+action: notion_garden_care.mark_as_watered
 data:
   entity_id: sensor.garden_care_tomatoes  # Or use plant_name
 
 # Mark plant as watered on a specific date
-service: notion_garden_care.mark_as_watered
+action: notion_garden_care.mark_as_watered
 data:
   plant_name: "Tomatoes"
   date: "2026-01-20"
 
 # Mark plant as fertilized
-service: notion_garden_care.mark_as_fertilized
+action: notion_garden_care.mark_as_fertilized
 data:
   plant_name: "Rose Bush"
 
 # Mark plant as pruned
-service: notion_garden_care.mark_as_pruned
+action: notion_garden_care.mark_as_pruned
 data:
   plant_name: "Apple Tree"
 
 # Mark plant as harvested
-service: notion_garden_care.mark_as_harvested
+action: notion_garden_care.mark_as_harvested
 data:
   plant_name: "Tomatoes"
 
 # Mark lawn as aerated
-service: notion_garden_care.mark_as_aerated
+action: notion_garden_care.mark_as_aerated
 data:
   plant_name: "Lawn"
 
 # Mark lawn as sanded
-service: notion_garden_care.mark_as_sanded
+action: notion_garden_care.mark_as_sanded
 data:
   plant_name: "Lawn"
 
 # Mark lawn as mowed
-service: notion_garden_care.mark_as_mowed
+action: notion_garden_care.mark_as_mowed
 data:
   plant_name: "Lawn"
 
 # Update any property (generic action with dropdown)
-service: notion_garden_care.update_plant_property
+action: notion_garden_care.update_plant_property
 data:
   entity_id: sensor.garden_care_tomatoes
   property_name: "Water Interval (days)"
   property_value: "5"
 
 # Add a new plant using AI
-service: notion_garden_care.add_plant
+action: notion_garden_care.add_plant
 data:
   plant_name: "Lavender"
 
 # Refresh data from Notion
-service: notion_garden_care.refresh_database
+action: notion_garden_care.refresh_database
 ```
 
 #### Action Parameters
@@ -293,7 +293,7 @@ Add plants with automatic care information using AI:
 
 2. **Add Plants:**
    ```yaml
-   service: notion_garden_care.add_plant
+   action: notion_garden_care.add_plant
    data:
      plant_name: "Lavender"
    ```
@@ -558,8 +558,8 @@ automation:
     trigger:
       - platform: time
         at: "07:00:00"
-    action:
-      - service: notify.mobile_app
+    actions:
+      - action: notify.mobile_app
         data:
           title: "Good Morning! Garden Update"
           message: >

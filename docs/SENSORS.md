@@ -102,8 +102,8 @@ automation:
       - platform: state
         entity_id: sensor.garden_care_tomatoes
         to: "Needs Water"
-    action:
-      - service: notify.mobile_app
+    actions:
+      - action: notify.mobile_app
         data:
           title: "Garden Alert"
           message: "Your tomatoes need watering!"
@@ -366,7 +366,7 @@ All sensors update automatically **every 60 minutes (1 hour)**.
 Force an immediate update anytime:
 
 ```yaml
-service: notion_garden_care.refresh_database
+action: notion_garden_care.refresh_database
 ```
 
 Or use Developer Tools → Actions → `notion_garden_care.refresh_database` → Perform Action
