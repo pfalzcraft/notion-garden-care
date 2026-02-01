@@ -2,6 +2,23 @@
 
 All notable changes to the Notion Garden Care integration will be documented in this file.
 
+## [1.6.2] - 2026-02-01
+
+### Changed
+- **Automatic Dashboard Creation**: The dashboard is now created automatically - no manual setup required
+  - Creates both the YAML config file and the dashboard registry entry
+  - Dashboard appears in the sidebar immediately after integration setup
+  - Uses HA's lovelace API with fallback to direct storage file creation
+  - Dismisses any setup notification automatically when dashboard is created
+
+### Fixed
+- **Blocking Call Warnings**: Fixed warnings about blocking calls in the event loop
+  - Moved directory scanning to executor thread
+  - Moved Notion client initialization to executor thread
+- **HA 2026.2 Compatibility**: Fixed deprecation warning for lovelace data access
+
+---
+
 ## [1.6.1] - 2026-01-31
 
 ### Changed

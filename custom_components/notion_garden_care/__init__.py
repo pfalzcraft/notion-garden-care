@@ -48,7 +48,7 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
 URL_BASE = "/notion-garden-care"
-FRONTEND_VERSION = "1.6.1"
+FRONTEND_VERSION = "1.6.2"
 
 # This integration can only be set up via config entries
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -103,10 +103,12 @@ async def _async_register_frontend(hass: HomeAssistant) -> None:
         _LOGGER.error("Frontend path does not exist: %s", frontend_path)
         return
 
-    # List files in frontend directory for debugging
+    # List files in frontend directory for debugging (in executor to avoid blocking)
     try:
-        files = list(frontend_path.iterdir())
-        _LOGGER.info("Frontend files: %s", [f.name for f in files])
+        def _list_files():
+            return [f.name for f in frontend_path.iterdir()]
+        files = await hass.async_add_executor_job(_list_files)
+        _LOGGER.info("Frontend files: %s", files)
     except Exception as err:
         _LOGGER.error("Could not list frontend directory: %s", err)
 
@@ -142,7 +144,7 @@ async def _async_register_frontend(hass: HomeAssistant) -> None:
 
 
 async def _async_create_dashboard(hass: HomeAssistant) -> None:
-    """Create the Garden Care dashboard YAML file and notify user to add dashboard."""
+    """Create the Garden Care dashboard automatically using HA's lovelace APIs."""
     if hass.data[DOMAIN].get("dashboard_created"):
         return
 
@@ -175,28 +177,11 @@ async def _async_create_dashboard(hass: HomeAssistant) -> None:
             await hass.async_add_executor_job(os.remove, old_yaml_path)
             _LOGGER.info("Removed old garden-care-dashboard.yaml")
 
-        # Check if dashboard already exists in lovelace_dashboards
-        storage_path = hass.config.path(".storage/lovelace_dashboards")
-        dashboard_exists = False
+        # Try to create dashboard using HA's lovelace APIs
+        dashboard_created = await _create_dashboard_via_api(hass)
 
-        def _check_dashboard():
-            if not os.path.exists(storage_path):
-                return False
-            try:
-                with open(storage_path, "r") as f:
-                    data = json.load(f)
-                items = data.get("data", {}).get("items", [])
-                return any(
-                    item.get("filename") == "garden-care.yaml"
-                    for item in items
-                )
-            except (json.JSONDecodeError, KeyError):
-                return False
-
-        dashboard_exists = await hass.async_add_executor_job(_check_dashboard)
-
-        if not dashboard_exists:
-            # Show persistent notification to guide user
+        if not dashboard_created:
+            # Fallback: Show persistent notification to guide user
             await hass.services.async_call(
                 "persistent_notification",
                 "create",
@@ -221,10 +206,130 @@ async def _async_create_dashboard(hass: HomeAssistant) -> None:
                 "Settings -> Dashboards -> Add Dashboard -> YAML mode -> filename: garden-care.yaml"
             )
         else:
-            _LOGGER.debug("Garden Care dashboard already exists")
+            # Dismiss any existing setup notification
+            await hass.services.async_call(
+                "persistent_notification",
+                "dismiss",
+                {"notification_id": "notion_garden_care_setup"},
+            )
 
     except Exception as err:
         _LOGGER.warning("Could not set up dashboard: %s", err)
+
+
+async def _create_dashboard_via_api(hass: HomeAssistant) -> bool:
+    """Create the dashboard using Home Assistant's lovelace collection API."""
+    import os
+
+    dashboard_id = "garden-care"
+    storage_path = hass.config.path(".storage/lovelace_dashboards")
+
+    # First check if dashboard already exists in storage file
+    def _check_existing():
+        if not os.path.exists(storage_path):
+            return False
+        try:
+            with open(storage_path, "r") as f:
+                data = json.load(f)
+            items = data.get("data", {}).get("items", [])
+            return any(
+                item.get("url_path") == dashboard_id or item.get("filename") == "garden-care.yaml"
+                for item in items
+            )
+        except (json.JSONDecodeError, KeyError, IOError):
+            return False
+
+    if await hass.async_add_executor_job(_check_existing):
+        _LOGGER.debug("Garden Care dashboard already exists in storage")
+        return True
+
+    # Try using HA's lovelace API first
+    try:
+        lovelace_data = hass.data.get("lovelace")
+        if lovelace_data:
+            # Use attribute access to avoid deprecation warning (HA 2026.2+)
+            dashboards = getattr(lovelace_data, "dashboards", None)
+            if dashboards is None and hasattr(lovelace_data, "get"):
+                dashboards = lovelace_data.get("dashboards")
+
+            if dashboards and hasattr(dashboards, "async_create_item"):
+                # Check if already exists in collection
+                exists = False
+                if hasattr(dashboards, "data"):
+                    for item in dashboards.data.values():
+                        if item.get("url_path") == dashboard_id or item.get("filename") == "garden-care.yaml":
+                            exists = True
+                            break
+
+                if not exists:
+                    await dashboards.async_create_item({
+                        "url_path": dashboard_id,
+                        "mode": "yaml",
+                        "filename": "garden-care.yaml",
+                        "title": "Garden Care",
+                        "icon": "mdi:flower",
+                        "show_in_sidebar": True,
+                        "require_admin": False,
+                    })
+                    _LOGGER.info("Successfully created Garden Care dashboard via HA API")
+                    return True
+                else:
+                    _LOGGER.debug("Garden Care dashboard already exists in collection")
+                    return True
+
+    except Exception as err:
+        _LOGGER.debug("Could not create dashboard via HA API: %s", err)
+
+    # Fallback: Create/update the storage file directly
+    try:
+        def _create_storage_file():
+            # Read existing data or create new structure
+            if os.path.exists(storage_path):
+                with open(storage_path, "r") as f:
+                    data = json.load(f)
+            else:
+                data = {
+                    "version": 1,
+                    "minor_version": 1,
+                    "key": "lovelace_dashboards",
+                    "data": {"items": []}
+                }
+
+            items = data.get("data", {}).get("items", [])
+
+            # Check if already exists
+            for item in items:
+                if item.get("url_path") == dashboard_id or item.get("filename") == "garden-care.yaml":
+                    return True  # Already exists
+
+            # Add new dashboard entry
+            items.append({
+                "id": dashboard_id.replace("-", "_"),
+                "url_path": dashboard_id,
+                "mode": "yaml",
+                "filename": "garden-care.yaml",
+                "title": "Garden Care",
+                "icon": "mdi:flower",
+                "show_in_sidebar": True,
+                "require_admin": False,
+            })
+
+            data["data"]["items"] = items
+
+            with open(storage_path, "w") as f:
+                json.dump(data, f, indent=2)
+
+            return True
+
+        result = await hass.async_add_executor_job(_create_storage_file)
+        if result:
+            _LOGGER.info("Created Garden Care dashboard via storage file")
+            return True
+
+    except Exception as err:
+        _LOGGER.warning("Could not create dashboard storage file: %s", err)
+
+    return False
 
 
 def _write_file(path: str, content: str) -> None:
@@ -238,8 +343,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     notion_token = entry.data[CONF_NOTION_TOKEN]
     database_id = entry.data[CONF_DATABASE_ID]
 
-    # Create Notion client
-    notion = Client(auth=notion_token)
+    # Create Notion client (in executor to avoid blocking SSL context loading)
+    def _create_notion_client():
+        return Client(auth=notion_token)
+
+    notion = await hass.async_add_executor_job(_create_notion_client)
 
     # Test connection
     try:
