@@ -2,6 +2,20 @@
 
 All notable changes to the Notion Garden Care integration will be documented in this file.
 
+## [1.8.0] - 2026-03-01
+
+### Added
+- **Plant Date field**: New `Plant Date` date property to record when a plant was planted
+- **Additional Information field**: New `Additional Information` rich-text property for any extra notes the user wants to track per plant
+- **Delete Plant action**: New `delete_plant` service/action to remove a plant from the Notion database by selecting its sensor entity — moves the Notion page to trash and removes the corresponding HA sensor automatically
+- **Automatic database migration**: On every startup the integration now checks whether the Notion database contains all required columns and adds any that are missing (including the two new fields above). Existing databases are upgraded automatically without any manual steps.
+
+### Changed
+- `update_plant_property` action now lists `Plant Date` and `Additional Information` in the property selector
+- Both new fields are included in individual plant sensor attributes (`plant_date`, `additional_information`)
+
+---
+
 ## [1.7.0] - 2026-02-01
 
 ### Changed

@@ -209,6 +209,7 @@ update_plant_property:
             - "Location"
             - "Active"
             - "Lifecycle"
+            - "Plant Date"
             # ── Plant Characteristics ──
             - "Height"
             - "Growth per Year"
@@ -248,6 +249,7 @@ update_plant_property:
             - "Care Instructions"
             - "Special Notes"
             - "Notes"
+            - "Additional Information"
     property_value:
       name: Property Value
       description: "The value to set. Type is auto-detected: number for integers/floats, true/false for checkbox, YYYY-MM-DD for dates, list for multi-select, otherwise text"
@@ -269,5 +271,30 @@ add_plant:
       description: The name of the plant to add (e.g., "Lavender", "Strawberry", "Mint")
       example: "Lavender"
       required: true
+      selector:
+        text:
+
+delete_plant:
+  name: Delete Plant
+  description: Permanently removes a plant from the Notion database (moves the page to trash) and deletes the corresponding sensor.
+  fields:
+    entity_id:
+      name: Plant
+      description: Select the plant sensor to delete
+      required: true
+      selector:
+        entity:
+          integration: notion_garden_care
+          domain: sensor
+    page_id:
+      name: Page ID
+      description: The Notion page ID (alternative to selecting entity)
+      example: "1234567890abcdef"
+      selector:
+        text:
+    plant_name:
+      name: Plant Name
+      description: The name of the plant (alternative to selecting entity)
+      example: "Tomatoes"
       selector:
         text:

@@ -584,6 +584,7 @@ class PlantSensor(CoordinatorEntity, SensorEntity):
             "Location",
             "Active",
             "Lifecycle",
+            "Plant Date",
             # ── Plant Characteristics ──
             "Height",
             "Growth per Year",
@@ -627,6 +628,7 @@ class PlantSensor(CoordinatorEntity, SensorEntity):
             "Care Instructions",
             "Special Notes",
             "Notes",
+            "Additional Information",
         ]
 
         # Start with page_id and plant_name

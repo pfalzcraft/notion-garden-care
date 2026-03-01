@@ -36,6 +36,7 @@ from .const import (
     SERVICE_UPDATE_PROPERTY,
     SERVICE_REFRESH_DATA,
     SERVICE_ADD_PLANT,
+    SERVICE_DELETE_PLANT,
     ATTR_PAGE_ID,
     ATTR_PLANT_NAME,
     ATTR_PROPERTY_NAME,
@@ -47,8 +48,207 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [Platform.SENSOR]
+
+# ── Required non-formula database properties ───────────────────────────────
+# Used to detect and repair missing columns in existing databases.
+_REQUIRED_SIMPLE_PROPERTIES: dict = {
+    "Type": {
+        "type": "select",
+        "select": {
+            "options": [
+                {"name": "Plant", "color": "green"},
+                {"name": "Tree", "color": "brown"},
+                {"name": "Shrub", "color": "yellow"},
+                {"name": "Vegetable", "color": "orange"},
+                {"name": "Herb", "color": "pink"},
+                {"name": "Lawn", "color": "green"},
+            ]
+        },
+    },
+    "Location": {
+        "type": "select",
+        "select": {
+            "options": [
+                {"name": "Garden", "color": "green"},
+                {"name": "Balcony", "color": "blue"},
+                {"name": "Terrace", "color": "purple"},
+                {"name": "Conservatory", "color": "yellow"},
+                {"name": "Indoor", "color": "gray"},
+            ]
+        },
+    },
+    "Active": {"type": "checkbox", "checkbox": {}},
+    "Lifecycle": {
+        "type": "select",
+        "select": {
+            "options": [
+                {"name": "Perennial", "color": "green"},
+                {"name": "Annual", "color": "yellow"},
+                {"name": "Biennial", "color": "blue"},
+            ]
+        },
+    },
+    "Plant Date": {"type": "date", "date": {}},
+    "Height": {"type": "rich_text", "rich_text": {}},
+    "Growth per Year": {"type": "rich_text", "rich_text": {}},
+    "Hardiness Zone": {
+        "type": "select",
+        "select": {
+            "options": [{"name": z, "color": "blue"} for z in
+                        ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"]]
+        },
+    },
+    "Sun Exposure": {
+        "type": "select",
+        "select": {
+            "options": [
+                {"name": "Full Sun", "color": "yellow"},
+                {"name": "Partial Sun", "color": "yellow"},
+                {"name": "Partial Shade", "color": "blue"},
+                {"name": "Full Shade", "color": "gray"},
+            ]
+        },
+    },
+    "Soil Type": {
+        "type": "select",
+        "select": {
+            "options": [
+                {"name": "Sandy", "color": "yellow"},
+                {"name": "Loamy", "color": "brown"},
+                {"name": "Clay", "color": "orange"},
+                {"name": "Silty", "color": "gray"},
+                {"name": "Peaty", "color": "brown"},
+                {"name": "Chalky", "color": "gray"},
+                {"name": "Any", "color": "green"},
+            ]
+        },
+    },
+    "Soil pH": {
+        "type": "select",
+        "select": {
+            "options": [
+                {"name": "Acidic (pH < 6)", "color": "orange"},
+                {"name": "Neutral (pH 6-7)", "color": "green"},
+                {"name": "Alkaline (pH > 7)", "color": "blue"},
+                {"name": "Any", "color": "gray"},
+            ]
+        },
+    },
+    "Water Interval (days)": {"type": "number", "number": {"format": "number"}},
+    "Last Watered": {"type": "date", "date": {}},
+    "Water Amount": {
+        "type": "select",
+        "select": {
+            "options": [
+                {"name": "Low", "color": "yellow"},
+                {"name": "Medium", "color": "blue"},
+                {"name": "High", "color": "blue"},
+            ]
+        },
+    },
+    "Fertilize Interval (days)": {"type": "number", "number": {"format": "number"}},
+    "Last Fertilized": {"type": "date", "date": {}},
+    "Fertilizer Type": {"type": "rich_text", "rich_text": {}},
+    "Prune Months": {
+        "type": "multi_select",
+        "multi_select": {
+            "options": [
+                {"name": "January", "color": "gray"},
+                {"name": "February", "color": "gray"},
+                {"name": "March", "color": "green"},
+                {"name": "April", "color": "green"},
+                {"name": "May", "color": "green"},
+                {"name": "June", "color": "yellow"},
+                {"name": "July", "color": "yellow"},
+                {"name": "August", "color": "orange"},
+                {"name": "September", "color": "orange"},
+                {"name": "October", "color": "brown"},
+                {"name": "November", "color": "brown"},
+                {"name": "December", "color": "gray"},
+            ]
+        },
+    },
+    "Last Pruned": {"type": "date", "date": {}},
+    "Prune Instructions": {"type": "rich_text", "rich_text": {}},
+    "Harvest Months": {
+        "type": "multi_select",
+        "multi_select": {
+            "options": [
+                {"name": "January", "color": "gray"},
+                {"name": "February", "color": "gray"},
+                {"name": "March", "color": "green"},
+                {"name": "April", "color": "green"},
+                {"name": "May", "color": "green"},
+                {"name": "June", "color": "yellow"},
+                {"name": "July", "color": "yellow"},
+                {"name": "August", "color": "orange"},
+                {"name": "September", "color": "orange"},
+                {"name": "October", "color": "brown"},
+                {"name": "November", "color": "brown"},
+                {"name": "December", "color": "gray"},
+            ]
+        },
+    },
+    "Last Harvested": {"type": "date", "date": {}},
+    "Harvest Notes": {"type": "rich_text", "rich_text": {}},
+    "Aeration Interval (days)": {"type": "number", "number": {"format": "number"}},
+    "Last Aeration": {"type": "date", "date": {}},
+    "Sanding Interval (days)": {"type": "number", "number": {"format": "number"}},
+    "Last Sanded": {"type": "date", "date": {}},
+    "Last Mowed": {"type": "date", "date": {}},
+    "Companion Plants": {"type": "rich_text", "rich_text": {}},
+    "Bad Companions": {"type": "rich_text", "rich_text": {}},
+    "Bee Friendly": {"type": "checkbox", "checkbox": {}},
+    "Toxicity": {
+        "type": "select",
+        "select": {
+            "options": [
+                {"name": "Safe", "color": "green"},
+                {"name": "Toxic to Pets", "color": "orange"},
+                {"name": "Toxic to Children", "color": "orange"},
+                {"name": "Toxic to Both", "color": "red"},
+            ]
+        },
+    },
+    "Winterize": {"type": "checkbox", "checkbox": {}},
+    "Care Instructions": {"type": "rich_text", "rich_text": {}},
+    "Care Instructions URL": {"type": "url", "url": {}},
+    "Prune Instructions URL": {"type": "url", "url": {}},
+    "Harvest Instructions URL": {"type": "url", "url": {}},
+    "Special Notes": {"type": "rich_text", "rich_text": {}},
+    "Notes": {"type": "rich_text", "rich_text": {}},
+    "Additional Information": {"type": "rich_text", "rich_text": {}},
+}
+
+# ── Required formula properties (depend on simple properties existing first) ─
+_REQUIRED_FORMULA_PROPERTIES: dict = {
+    "Next Water": {
+        "type": "formula",
+        "formula": {
+            "expression": 'dateAdd(prop("Last Watered"), prop("Water Interval (days)"), "days")'
+        },
+    },
+    "Next Fertilize": {
+        "type": "formula",
+        "formula": {
+            "expression": 'dateAdd(prop("Last Fertilized"), prop("Fertilize Interval (days)"), "days")'
+        },
+    },
+    "Next Aeration": {
+        "type": "formula",
+        "formula": {
+            "expression": 'dateAdd(prop("Last Aeration"), prop("Aeration Interval (days)"), "days")'
+        },
+    },
+    "Next Sanding": {
+        "type": "formula",
+        "formula": {
+            "expression": 'dateAdd(prop("Last Sanded"), prop("Sanding Interval (days)"), "days")'
+        },
+    },
+}
 URL_BASE = "/notion-garden-care"
-FRONTEND_VERSION = "1.7.0"
+FRONTEND_VERSION = "1.8.0"
 
 # This integration can only be set up via config entries
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -77,6 +277,78 @@ ADD_PLANT_SCHEMA = vol.Schema(
         vol.Required(ATTR_PLANT_NAME): cv.string,
     }
 )
+
+DELETE_PLANT_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_ENTITY_ID): cv.entity_id,
+        vol.Optional(ATTR_PAGE_ID): cv.string,
+        vol.Optional(ATTR_PLANT_NAME): cv.string,
+    }
+)
+
+
+async def _async_ensure_database_up_to_date(
+    hass: HomeAssistant,
+    notion: Any,
+    database_id: str,
+) -> None:
+    """Check the Notion database schema and add any missing columns.
+
+    Retrieves the current database properties, compares them against the
+    expected schema, and calls databases.update for any properties that are
+    absent.  Simple (non-formula) properties are added first so that formula
+    properties can safely reference them.
+    """
+
+    def _check_and_update() -> list[str]:
+        db = notion.databases.retrieve(database_id=database_id)
+        existing: set[str] = set(db.get("properties", {}).keys())
+
+        missing_simple = {
+            name: spec
+            for name, spec in _REQUIRED_SIMPLE_PROPERTIES.items()
+            if name not in existing
+        }
+        missing_formula = {
+            name: spec
+            for name, spec in _REQUIRED_FORMULA_PROPERTIES.items()
+            if name not in existing
+        }
+
+        added: list[str] = []
+
+        if missing_simple:
+            notion.databases.update(
+                database_id=database_id,
+                properties=missing_simple,
+            )
+            added.extend(missing_simple.keys())
+
+        if missing_formula:
+            notion.databases.update(
+                database_id=database_id,
+                properties=missing_formula,
+            )
+            added.extend(missing_formula.keys())
+
+        return added
+
+    try:
+        added = await hass.async_add_executor_job(_check_and_update)
+        if added:
+            _LOGGER.info(
+                "Notion database updated: added %d missing property/column(s): %s",
+                len(added),
+                added,
+            )
+        else:
+            _LOGGER.debug("Notion database schema is up to date — no changes needed.")
+    except Exception as err:  # pylint: disable=broad-except
+        _LOGGER.warning(
+            "Could not verify/update Notion database schema: %s. "
+            "The integration will continue, but some columns may be missing.",
+            err,
+        )
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
@@ -358,6 +630,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except APIResponseError as err:
         _LOGGER.error("Failed to connect to Notion: %s", err)
         raise ConfigEntryNotReady from err
+
+    # Ensure database has all required columns; add any that are missing
+    await _async_ensure_database_up_to_date(hass, notion, database_id)
 
     # Store data
     hass.data.setdefault(DOMAIN, {})
@@ -645,6 +920,37 @@ Respond ONLY with the JSON object, nothing else."""
         except Exception as err:
             _LOGGER.error("Failed to add plant '%s': %s", plant_name, err, exc_info=True)
 
+    async def handle_delete_plant(call: ServiceCall) -> None:
+        """Handle delete plant service — archives the Notion page and removes the sensor."""
+        page_id = _get_page_id_from_call(call)
+        plant_name = call.data.get(ATTR_PLANT_NAME)
+
+        if not page_id and not plant_name:
+            _LOGGER.error(
+                "notion_garden_care.delete_plant requires entity_id, page_id, or plant_name"
+            )
+            return
+
+        if not page_id and plant_name:
+            page_id = await _find_page_by_name(hass, entry.entry_id, plant_name)
+            if not page_id:
+                _LOGGER.error("Plant '%s' not found in Notion database", plant_name)
+                return
+
+        notion = hass.data[DOMAIN][entry.entry_id]["notion"]
+
+        try:
+            await hass.async_add_executor_job(
+                lambda: notion.pages.update(page_id=page_id, archived=True)
+            )
+            _LOGGER.info("Plant page %s archived (deleted) in Notion", page_id)
+
+            # Reload the integration so the corresponding sensor is removed
+            await hass.config_entries.async_reload(entry.entry_id)
+
+        except APIResponseError as err:
+            _LOGGER.error("Failed to delete plant page %s: %s", page_id, err)
+
     # Register all services
     hass.services.async_register(
         DOMAIN, SERVICE_UPDATE_WATERED, handle_update_watered, schema=UPDATE_SERVICE_SCHEMA
@@ -676,6 +982,9 @@ Respond ONLY with the JSON object, nothing else."""
     hass.services.async_register(
         DOMAIN, SERVICE_ADD_PLANT, handle_add_plant, schema=ADD_PLANT_SCHEMA
     )
+    hass.services.async_register(
+        DOMAIN, SERVICE_DELETE_PLANT, handle_delete_plant, schema=DELETE_PLANT_SCHEMA
+    )
 
     return True
 
@@ -697,6 +1006,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.services.async_remove(DOMAIN, SERVICE_UPDATE_PROPERTY)
         hass.services.async_remove(DOMAIN, SERVICE_REFRESH_DATA)
         hass.services.async_remove(DOMAIN, SERVICE_ADD_PLANT)
+        hass.services.async_remove(DOMAIN, SERVICE_DELETE_PLANT)
 
     return unload_ok
 

@@ -29,6 +29,7 @@ SERVICE_UPDATE_MOWED = "mark_as_mowed"
 SERVICE_UPDATE_PROPERTY = "update_plant_property"
 SERVICE_REFRESH_DATA = "refresh_database"
 SERVICE_ADD_PLANT = "add_plant"
+SERVICE_DELETE_PLANT = "delete_plant"
 
 # Attributes
 ATTR_PAGE_ID = "page_id"
@@ -113,6 +114,8 @@ PROPERTY_SOIL_PH = "Soil pH"
 PROPERTY_GROWTH_PER_YEAR = "Growth per Year"
 PROPERTY_HEIGHT = "Height"
 PROPERTY_WINTERIZE = "Winterize"
+PROPERTY_PLANT_DATE = "Plant Date"
+PROPERTY_ADDITIONAL_INFO = "Additional Information"
 
 # All updatable properties (for service dropdown) - organized by category
 UPDATABLE_PROPERTIES = [
@@ -121,6 +124,7 @@ UPDATABLE_PROPERTIES = [
     "Location",
     "Active",
     "Lifecycle",
+    "Plant Date",
     # ── Plant Characteristics ──
     "Height",
     "Growth per Year",
@@ -160,6 +164,7 @@ UPDATABLE_PROPERTIES = [
     "Care Instructions",
     "Special Notes",
     "Notes",
+    "Additional Information",
 ]
 
 # Example Plants - properties organized by category

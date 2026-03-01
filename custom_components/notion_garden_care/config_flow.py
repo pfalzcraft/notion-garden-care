@@ -322,7 +322,12 @@ def _create_database_sync(notion: Client, parent_page_id: str) -> dict:
             "Prune Instructions URL": {"type": "url", "url": {}},
             "Harvest Instructions URL": {"type": "url", "url": {}},
             "Special Notes": {"type": "rich_text", "rich_text": {}},
-            "Notes": {"type": "rich_text", "rich_text": {}}
+            "Notes": {"type": "rich_text", "rich_text": {}},
+            # ══════════════════════════════════════════════════════════════
+            # PLANTING & ADDITIONAL INFO
+            # ══════════════════════════════════════════════════════════════
+            "Plant Date": {"type": "date", "date": {}},
+            "Additional Information": {"type": "rich_text", "rich_text": {}},
             }
         }
     )
