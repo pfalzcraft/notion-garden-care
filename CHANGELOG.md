@@ -2,6 +2,15 @@
 
 All notable changes to the Notion Garden Care integration will be documented in this file.
 
+## [1.8.2] - 2026-03-01
+
+### Changed
+- **Location is now a free-text field** instead of a fixed dropdown. You can now enter any location description (e.g. "Back garden bed 3", "South-facing balcony", "Kitchen windowsill") instead of being limited to Garden / Balcony / Terrace / Conservatory / Indoor.
+  - On startup the integration automatically converts the existing `Location` select column to a text column in your Notion database.
+  - AI-added plants will now receive a descriptive location text rather than a fixed category.
+
+---
+
 ## [1.8.1] - 2026-03-01
 
 ### Fixed

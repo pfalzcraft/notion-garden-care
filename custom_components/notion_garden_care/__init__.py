@@ -65,18 +65,7 @@ _REQUIRED_SIMPLE_PROPERTIES: dict = {
             ]
         },
     },
-    "Location": {
-        "type": "select",
-        "select": {
-            "options": [
-                {"name": "Garden", "color": "green"},
-                {"name": "Balcony", "color": "blue"},
-                {"name": "Terrace", "color": "purple"},
-                {"name": "Conservatory", "color": "yellow"},
-                {"name": "Indoor", "color": "gray"},
-            ]
-        },
-    },
+    "Location": {"type": "rich_text", "rich_text": {}},
     "Active": {"type": "checkbox", "checkbox": {}},
     "Lifecycle": {
         "type": "select",
@@ -248,7 +237,7 @@ _REQUIRED_FORMULA_PROPERTIES: dict = {
     },
 }
 URL_BASE = "/notion-garden-care"
-FRONTEND_VERSION = "1.8.1"
+FRONTEND_VERSION = "1.8.2"
 
 # This integration can only be set up via config entries
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -313,10 +302,45 @@ async def _async_ensure_database_up_to_date(
         # ── Step 1: retrieve current schema ──────────────────────────────
         resp = httpx.get(base_url, headers=headers, timeout=30.0)
         resp.raise_for_status()
-        existing: set[str] = set(resp.json().get("properties", {}).keys())
+        db_props: dict = resp.json().get("properties", {})
+        existing: set[str] = set(db_props.keys())
         _LOGGER.debug("Existing Notion database columns: %s", sorted(existing))
 
-        # ── Step 2: compute missing properties ───────────────────────────
+        added: list[str] = []
+
+        # ── Step 2: retype properties whose type has changed ─────────────
+        # Maps property name → expected config (without "type" key).
+        # Only listed here when an existing property needs a type change.
+        _PROPERTY_TYPE_CHANGES: dict = {
+            "Location": {"rich_text": {}},  # was select, now free text
+        }
+        to_retype: dict = {
+            name: new_spec
+            for name, new_spec in _PROPERTY_TYPE_CHANGES.items()
+            if name in db_props and db_props[name].get("type") != list(new_spec.keys())[0]
+        }
+        if to_retype:
+            _LOGGER.info(
+                "Retyping %d column(s) in Notion database: %s",
+                len(to_retype), list(to_retype.keys()),
+            )
+            resp = httpx.patch(
+                base_url,
+                headers=headers,
+                json={"properties": to_retype},
+                timeout=30.0,
+            )
+            if resp.status_code >= 400:
+                _LOGGER.error(
+                    "Notion API rejected property type change (HTTP %s): %s. "
+                    "Please manually change the 'Location' column type from "
+                    "'Select' to 'Text' in your Notion database.",
+                    resp.status_code, resp.text,
+                )
+            else:
+                added.extend(to_retype.keys())
+
+        # ── Step 3: compute missing properties ───────────────────────────
         # Strip the "type" key — the Notion PATCH API infers type from the
         # config key (e.g. "rich_text", "date", "formula", …).
         missing_simple: dict = {
@@ -330,9 +354,7 @@ async def _async_ensure_database_up_to_date(
             if name not in existing
         }
 
-        added: list[str] = []
-
-        # ── Step 3: add simple properties first ──────────────────────────
+        # ── Step 4: add simple properties first ──────────────────────────
         if missing_simple:
             _LOGGER.info(
                 "Adding %d missing simple column(s) to Notion database: %s",
@@ -352,7 +374,7 @@ async def _async_ensure_database_up_to_date(
                 resp.raise_for_status()
             added.extend(missing_simple.keys())
 
-        # ── Step 4: add formula properties (dependencies now exist) ──────
+        # ── Step 5: add formula properties (dependencies now exist) ──────
         if missing_formula:
             _LOGGER.info(
                 "Adding %d missing formula column(s) to Notion database: %s",
@@ -880,7 +902,7 @@ Please respond ONLY with a valid JSON object (no markdown, no explanation) with 
 {{
     "name": "{plant_name}",
     "type": "Plant|Tree|Shrub|Vegetable|Herb|Lawn",
-    "location": "Garden|Balcony|Terrace|Conservatory|Indoor",
+    "location": "free text description of where the plant is located (e.g. 'Back garden', 'South-facing balcony', 'Kitchen windowsill', 'Greenhouse')",
     "lifecycle": "Perennial|Annual|Biennial",
     "hardiness_zone": "1-13 (USDA hardiness zone number as string)",
     "soil_type": "Sandy|Loamy|Clay|Silty|Peaty|Chalky|Any",
@@ -1213,9 +1235,9 @@ async def _create_plant_in_notion(
     if plant_data.get("type"):
         properties["Type"] = {"select": {"name": plant_data["type"]}}
 
-    # Location (select)
+    # Location (rich_text)
     if plant_data.get("location"):
-        properties["Location"] = {"select": {"name": plant_data["location"]}}
+        properties["Location"] = {"rich_text": [{"text": {"content": plant_data["location"]}}]}
 
     # Sun Exposure (select)
     if plant_data.get("sun_exposure"):

@@ -164,15 +164,7 @@ def _create_database_sync(notion: Client, parent_page_id: str) -> dict:
                     )]
                 }
             },
-            "Location": {
-                "type": "select",
-                "select": {
-                    "options": [{"name": l, "color": c} for l, c in zip(
-                        LOCATIONS,
-                        ["green", "blue", "purple", "yellow", "gray"]
-                    )]
-                }
-            },
+            "Location": {"type": "rich_text", "rich_text": {}},
             "Active": {"type": "checkbox", "checkbox": {}},
             "Lifecycle": {
                 "type": "select",
@@ -363,7 +355,7 @@ def _add_example_plants(notion: Client, database_id: str) -> None:
                     "title": [{"text": {"content": plant_data["Name"]}}]
                 },
                 "Type": {"select": {"name": plant_data["Type"]}},
-                "Location": {"select": {"name": plant_data["Location"]}},
+                "Location": {"rich_text": [{"text": {"content": plant_data["Location"]}}]},
                 "Active": {"checkbox": plant_data["Active"]},
                 "Fertilize Interval (days)": {"number": plant_data["Fertilize Interval (days)"]},
                 "Last Fertilized": {"date": {"start": last_fertilized.strftime("%Y-%m-%d")}},
