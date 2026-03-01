@@ -248,7 +248,7 @@ _REQUIRED_FORMULA_PROPERTIES: dict = {
     },
 }
 URL_BASE = "/notion-garden-care"
-FRONTEND_VERSION = "1.8.0"
+FRONTEND_VERSION = "1.8.1"
 
 # This integration can only be set up via config entries
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -289,46 +289,87 @@ DELETE_PLANT_SCHEMA = vol.Schema(
 
 async def _async_ensure_database_up_to_date(
     hass: HomeAssistant,
-    notion: Any,
+    notion_token: str,
     database_id: str,
 ) -> None:
     """Check the Notion database schema and add any missing columns.
 
-    Retrieves the current database properties, compares them against the
-    expected schema, and calls databases.update for any properties that are
-    absent.  Simple (non-formula) properties are added first so that formula
-    properties can safely reference them.
+    Uses httpx directly (consistent with the rest of the codebase) to retrieve
+    the current database schema and PATCH in any missing properties.
+    Simple (non-formula) properties are added first so that formula properties
+    can safely reference them.
     """
 
     def _check_and_update() -> list[str]:
-        db = notion.databases.retrieve(database_id=database_id)
-        existing: set[str] = set(db.get("properties", {}).keys())
+        import httpx
 
-        missing_simple = {
-            name: spec
+        headers = {
+            "Authorization": f"Bearer {notion_token}",
+            "Notion-Version": "2022-06-28",
+            "Content-Type": "application/json",
+        }
+        base_url = f"https://api.notion.com/v1/databases/{database_id}"
+
+        # ── Step 1: retrieve current schema ──────────────────────────────
+        resp = httpx.get(base_url, headers=headers, timeout=30.0)
+        resp.raise_for_status()
+        existing: set[str] = set(resp.json().get("properties", {}).keys())
+        _LOGGER.debug("Existing Notion database columns: %s", sorted(existing))
+
+        # ── Step 2: compute missing properties ───────────────────────────
+        # Strip the "type" key — the Notion PATCH API infers type from the
+        # config key (e.g. "rich_text", "date", "formula", …).
+        missing_simple: dict = {
+            name: {k: v for k, v in spec.items() if k != "type"}
             for name, spec in _REQUIRED_SIMPLE_PROPERTIES.items()
             if name not in existing
         }
-        missing_formula = {
-            name: spec
+        missing_formula: dict = {
+            name: {k: v for k, v in spec.items() if k != "type"}
             for name, spec in _REQUIRED_FORMULA_PROPERTIES.items()
             if name not in existing
         }
 
         added: list[str] = []
 
+        # ── Step 3: add simple properties first ──────────────────────────
         if missing_simple:
-            notion.databases.update(
-                database_id=database_id,
-                properties=missing_simple,
+            _LOGGER.info(
+                "Adding %d missing simple column(s) to Notion database: %s",
+                len(missing_simple), list(missing_simple.keys()),
             )
+            resp = httpx.patch(
+                base_url,
+                headers=headers,
+                json={"properties": missing_simple},
+                timeout=30.0,
+            )
+            if resp.status_code >= 400:
+                _LOGGER.error(
+                    "Notion API rejected simple-property update (HTTP %s): %s",
+                    resp.status_code, resp.text,
+                )
+                resp.raise_for_status()
             added.extend(missing_simple.keys())
 
+        # ── Step 4: add formula properties (dependencies now exist) ──────
         if missing_formula:
-            notion.databases.update(
-                database_id=database_id,
-                properties=missing_formula,
+            _LOGGER.info(
+                "Adding %d missing formula column(s) to Notion database: %s",
+                len(missing_formula), list(missing_formula.keys()),
             )
+            resp = httpx.patch(
+                base_url,
+                headers=headers,
+                json={"properties": missing_formula},
+                timeout=30.0,
+            )
+            if resp.status_code >= 400:
+                _LOGGER.error(
+                    "Notion API rejected formula-property update (HTTP %s): %s",
+                    resp.status_code, resp.text,
+                )
+                resp.raise_for_status()
             added.extend(missing_formula.keys())
 
         return added
@@ -337,17 +378,15 @@ async def _async_ensure_database_up_to_date(
         added = await hass.async_add_executor_job(_check_and_update)
         if added:
             _LOGGER.info(
-                "Notion database updated: added %d missing property/column(s): %s",
-                len(added),
-                added,
+                "Notion database updated — added %d column(s): %s",
+                len(added), added,
             )
         else:
-            _LOGGER.debug("Notion database schema is up to date — no changes needed.")
+            _LOGGER.info("Notion database schema is up to date — no changes needed.")
     except Exception as err:  # pylint: disable=broad-except
-        _LOGGER.warning(
-            "Could not verify/update Notion database schema: %s. "
-            "The integration will continue, but some columns may be missing.",
-            err,
+        _LOGGER.error(
+            "Could not verify/update Notion database schema: %s",
+            err, exc_info=True,
         )
 
 
@@ -632,7 +671,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         raise ConfigEntryNotReady from err
 
     # Ensure database has all required columns; add any that are missing
-    await _async_ensure_database_up_to_date(hass, notion, database_id)
+    await _async_ensure_database_up_to_date(hass, notion_token, database_id)
 
     # Store data
     hass.data.setdefault(DOMAIN, {})

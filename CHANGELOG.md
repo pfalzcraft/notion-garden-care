@@ -2,6 +2,13 @@
 
 All notable changes to the Notion Garden Care integration will be documented in this file.
 
+## [1.8.1] - 2026-03-01
+
+### Fixed
+- **Database migration not running**: The auto-migration introduced in 1.8.0 used the `notion_client` library for `databases.update`, which did not apply changes correctly. Rewritten to use `httpx` directly (consistent with all other API calls in the integration). The `"type"` key is now stripped from property specs as required by the Notion PATCH API. Error logging upgraded from `WARNING` to `ERROR` with full traceback for easier diagnosis.
+
+---
+
 ## [1.8.0] - 2026-03-01
 
 ### Added
