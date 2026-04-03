@@ -67,10 +67,9 @@ async def validate_token(hass: HomeAssistant, token: str) -> dict[str, str]:
     """Validate the Notion API token."""
     try:
         notion = Client(auth=token)
-        # Test the token by searching for pages
-        await hass.async_add_executor_job(
-            lambda: notion.search(page_size=1)
-        )
+        # Validate by fetching the bot user — works for any valid integration token
+        # regardless of whether any pages have been shared yet
+        await hass.async_add_executor_job(lambda: notion.users.me())
         return {"title": "Notion Garden Care"}
     except APIResponseError as err:
         if err.status == 401:
@@ -640,7 +639,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> FlowResult:
         """Handle AI conversation agent configuration."""
         if user_input is not None:
-            # Store AI config in options (not data, since it's optional config)
             return self.async_create_entry(
                 title="Notion Garden Care",
                 data=self.data,
@@ -697,10 +695,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             step_id="init",
             data_schema=vol.Schema(
                 {
-                    vol.Optional(
-                        CONF_CONVERSATION_AGENT,
-                        default=current_agent,
-                    ): vol.In(conversation_agents),
+                    vol.Optional(CONF_CONVERSATION_AGENT, default=current_agent): vol.In(conversation_agents),
                 }
             ),
         )

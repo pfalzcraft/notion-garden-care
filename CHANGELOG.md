@@ -2,6 +2,21 @@
 
 All notable changes to the Notion Garden Care integration will be documented in this file.
 
+## [1.9.0] - 2026-04-03
+
+### Fixed
+- **Integration setup failing on first step**: Token validation now uses the `/users/me` endpoint instead of `search`, which could fail for fresh integrations that haven't yet been connected to any Notion pages. Setup now works reliably for brand new integrations. (Fixes #2, #3)
+
+### Changed
+- **AI plant addition is now location-aware**: When adding a plant via AI, the integration automatically reads your Home Assistant system settings (coordinates, elevation, country, timezone) and passes them to the AI. Advice is now tailored to your local climate, correct hemisphere, and growing season — watering intervals, pruning months, harvest months, hardiness zone, and winterize flag are all adjusted accordingly. No manual location input required. (Fixes #4)
+- **Location field left blank on AI plant creation**: The `Location` field in Notion (e.g. "Back garden", "Kitchen windowsill") is no longer auto-filled by AI — this is personal information only you know. Fill it in manually after adding a plant.
+
+### Documentation
+- Updated Quick Start **Step 2** in README and INSTALLATION.md to reflect the current Notion integration creation UI, which now requires selecting a workspace and enabling content capabilities (Read, Update, Insert). (Fixes #1, #3)
+- README Step 5 updated to document location-aware AI behaviour and the manual Location field expectation.
+
+---
+
 ## [1.8.2] - 2026-03-01
 
 ### Changed

@@ -51,9 +51,18 @@ Manage your garden with Notion and automate reminders with Home Assistant. Track
 
 1. Go to [https://www.notion.so/my-integrations](https://www.notion.so/my-integrations)
 2. Click **"+ New integration"**
-3. Name: `Home Assistant Garden`
-4. Click **"Submit"**
-5. **Copy the token** (starts with `secret_...` or `ntn_...`)
+3. Fill in the required fields:
+   - **Name:** `Home Assistant Garden`
+   - **Associated workspace:** Select your Notion workspace
+   - **Type:** Leave as **Internal**
+4. Under **Capabilities**, enable at minimum:
+   - ✅ Read content
+   - ✅ Update content
+   - ✅ Insert content
+5. Click **"Save"**
+6. **Copy the token** (starts with `ntn_...`) from the **Secrets** tab
+
+> **Note:** The Notion integration creation page has several required fields. Make sure to select your workspace and enable the content capabilities listed above — without them the integration will not be able to read or write to your Notion database.
 
 ### Step 3: Create a Page in Notion (1 minute)
 
@@ -131,7 +140,8 @@ To get the full potential of the integration, configure an AI conversation agent
    data:
      plant_name: "Lavender"
    ```
-   - The AI will automatically fill in all care details (watering schedule, sun exposure, pruning months, etc.)
+   - The AI will automatically fill in all care details (watering schedule, sun exposure, pruning months, etc.) tailored to your local climate using your Home Assistant location settings (coordinates, elevation, country, timezone)
+   - **Location** in Notion is left blank intentionally — fill this in yourself to describe where the plant lives (e.g. "Back garden", "Kitchen windowsill")
 
 ### Verify Resources (if cards don't appear)
 

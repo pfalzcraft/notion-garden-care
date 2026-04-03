@@ -896,13 +896,42 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.error("No conversation agent configured. Please configure one in the integration options.")
             return
 
-        # Create prompt for AI
+        # Build location context from HA system settings
+        lat = hass.config.latitude
+        lon = hass.config.longitude
+        elevation = hass.config.elevation
+        country = hass.config.country or ""
+        timezone = str(hass.config.time_zone) if hass.config.time_zone else ""
+        location_name = hass.config.location_name or ""
+
+        hemisphere = "Southern" if lat < 0 else "Northern"
+        lat_str = f"{abs(lat):.4f}°{'S' if lat < 0 else 'N'}"
+        lon_str = f"{abs(lon):.4f}°{'W' if lon < 0 else 'E'}"
+
+        location_parts = [f"coordinates {lat_str}, {lon_str}"]
+        if elevation is not None:
+            location_parts.append(f"elevation {elevation}m")
+        if country:
+            location_parts.append(f"country {country}")
+        if timezone:
+            location_parts.append(f"timezone {timezone}")
+        if location_name:
+            location_parts.append(f"home location name \"{location_name}\"")
+
+        location_detail = ", ".join(location_parts)
+
         prompt = f"""I need detailed plant care information for "{plant_name}".
+The plant will be grown at: {location_detail}.
+This location is in the {hemisphere} Hemisphere. Tailor ALL advice to these exact local conditions:
+- Use the coordinates to determine the precise USDA hardiness zone
+- Prune/harvest months must reflect the correct growing season for the {hemisphere} Hemisphere
+- Watering intervals should reflect the local climate (arid, temperate, tropical, etc.)
+- Elevation ({elevation}m) affects temperature ranges and growing conditions
+- Set winterize=true only if the local climate requires it
 Please respond ONLY with a valid JSON object (no markdown, no explanation) with these exact fields:
 {{
     "name": "{plant_name}",
     "type": "Plant|Tree|Shrub|Vegetable|Herb|Lawn",
-    "location": "free text description of where the plant is located (e.g. 'Back garden', 'South-facing balcony', 'Kitchen windowsill', 'Greenhouse')",
     "lifecycle": "Perennial|Annual|Biennial",
     "hardiness_zone": "1-13 (USDA hardiness zone number as string)",
     "soil_type": "Sandy|Loamy|Clay|Silty|Peaty|Chalky|Any",
@@ -1234,10 +1263,6 @@ async def _create_plant_in_notion(
     # Type (select)
     if plant_data.get("type"):
         properties["Type"] = {"select": {"name": plant_data["type"]}}
-
-    # Location (rich_text)
-    if plant_data.get("location"):
-        properties["Location"] = {"rich_text": [{"text": {"content": plant_data["location"]}}]}
 
     # Sun Exposure (select)
     if plant_data.get("sun_exposure"):

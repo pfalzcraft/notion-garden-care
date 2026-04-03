@@ -65,10 +65,18 @@ Once this integration is added to HACS, you'll be able to install it with one cl
 
 1. Go to [https://www.notion.so/my-integrations](https://www.notion.so/my-integrations)
 2. Click **"+ New integration"**
-3. Give it a name: `Home Assistant Garden`
-4. Select your workspace
-5. Click **"Submit"**
-6. **Copy the "Internal Integration Secret"** (starts with `secret_...` or `ntn_...`)
+3. Fill in the required fields:
+   - **Name:** `Home Assistant Garden`
+   - **Associated workspace:** Select your Notion workspace
+   - **Type:** Leave as **Internal**
+4. Under **Capabilities**, enable at minimum:
+   - ✅ Read content
+   - ✅ Update content
+   - ✅ Insert content
+5. Click **"Save"**
+6. **Copy the token** (starts with `ntn_...`) from the **Secrets** tab
+
+> **Note:** Without the content capabilities enabled, the integration will not be able to read or write to your Notion database.
 
 ### Step 2: Create Parent Page in Notion (Optional)
 
