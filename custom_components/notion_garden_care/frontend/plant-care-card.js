@@ -175,6 +175,30 @@ class PlantCareCard extends HTMLElement {
   }
 
   /**
+   * Delete the plant from Notion after confirmation
+   */
+  async deletePlant(entityId) {
+    const yesBtn = this.shadowRoot.getElementById('confirm-yes');
+    const noBtn = this.shadowRoot.getElementById('confirm-no');
+    if (yesBtn) { yesBtn.disabled = true; yesBtn.textContent = '⏳ Deleting...'; }
+    if (noBtn) noBtn.disabled = true;
+
+    try {
+      await this._hass.callService('notion_garden_care', 'delete_plant', {
+        entity_id: entityId
+      });
+      if (yesBtn) yesBtn.textContent = '✓ Deleted!';
+    } catch (err) {
+      console.error('Failed to delete plant:', err);
+      if (yesBtn) { yesBtn.disabled = false; yesBtn.textContent = 'Yes, delete'; }
+      if (noBtn) noBtn.disabled = false;
+      const deleteBtn = this.shadowRoot.getElementById('btn-delete');
+      if (deleteBtn) deleteBtn.style.display = '';
+      this.shadowRoot.getElementById('confirm-delete')?.classList.remove('visible');
+    }
+  }
+
+  /**
    * Format all attributes as table rows
    */
   formatAttributes(attrs) {
@@ -459,6 +483,55 @@ class PlantCareCard extends HTMLElement {
         .action-btn.error {
           background: #f44336;
         }
+        .action-btn.delete {
+          background: transparent;
+          color: var(--error-color, #db4437);
+          border: 1px solid var(--error-color, #db4437);
+          margin-left: auto;
+        }
+        .action-btn.delete:hover:not(:disabled) {
+          background: var(--error-color, #db4437);
+          color: white;
+          opacity: 1;
+        }
+        .confirm-delete {
+          display: none;
+          align-items: center;
+          gap: 8px;
+          margin-left: auto;
+          flex-wrap: wrap;
+        }
+        .confirm-delete.visible {
+          display: flex;
+        }
+        .confirm-label {
+          font-size: 0.85em;
+          color: var(--primary-text-color);
+          white-space: nowrap;
+        }
+        .confirm-yes {
+          padding: 8px 12px;
+          border: none;
+          border-radius: 8px;
+          background: var(--error-color, #db4437);
+          color: white;
+          cursor: pointer;
+          font-size: 0.85em;
+          font-weight: 500;
+        }
+        .confirm-yes:disabled {
+          opacity: 0.7;
+          cursor: wait;
+        }
+        .confirm-no {
+          padding: 8px 12px;
+          border: 1px solid var(--divider-color, #ccc);
+          border-radius: 8px;
+          background: transparent;
+          color: var(--primary-text-color);
+          cursor: pointer;
+          font-size: 0.85em;
+        }
         .care-dates {
           display: flex;
           flex-direction: column;
@@ -652,6 +725,14 @@ class PlantCareCard extends HTMLElement {
             🚜 Mowed
           </button>
           ` : ''}
+          <button class="action-btn delete" id="btn-delete" title="Delete this plant from Notion">
+            🗑️ Delete
+          </button>
+          <div class="confirm-delete" id="confirm-delete">
+            <span class="confirm-label">Delete "${plantName}"?</span>
+            <button class="confirm-yes" id="confirm-yes">Yes, delete</button>
+            <button class="confirm-no" id="confirm-no">Cancel</button>
+          </div>
         </div>
 
       </ha-card>
@@ -715,6 +796,19 @@ class PlantCareCard extends HTMLElement {
     });
     this.shadowRoot.getElementById('btn-mow')?.addEventListener('click', () => {
       this.callService('mark_as_mowed', entityIdForService, 'btn-mow');
+    });
+
+    // Delete button — show inline confirmation
+    this.shadowRoot.getElementById('btn-delete')?.addEventListener('click', () => {
+      this.shadowRoot.getElementById('btn-delete').style.display = 'none';
+      this.shadowRoot.getElementById('confirm-delete').classList.add('visible');
+    });
+    this.shadowRoot.getElementById('confirm-no')?.addEventListener('click', () => {
+      this.shadowRoot.getElementById('btn-delete').style.display = '';
+      this.shadowRoot.getElementById('confirm-delete').classList.remove('visible');
+    });
+    this.shadowRoot.getElementById('confirm-yes')?.addEventListener('click', () => {
+      this.deletePlant(entityIdForService);
     });
   }
 }
