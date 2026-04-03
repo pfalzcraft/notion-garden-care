@@ -1028,7 +1028,11 @@ Respond ONLY with the JSON object, nothing else."""
             _LOGGER.error("Failed to add plant '%s': %s", plant_name, err, exc_info=True)
 
     async def handle_delete_plant(call: ServiceCall) -> None:
-        """Handle delete plant service — archives the Notion page and removes the sensor."""
+        """Handle delete plant service — archives the Notion page and removes the HA sensor."""
+        from homeassistant.helpers import entity_registry as er
+
+        # Retain entity_id before resolving page_id (we need both)
+        entity_id_from_call = call.data.get(ATTR_ENTITY_ID)
         page_id = _get_page_id_from_call(call)
         plant_name = call.data.get(ATTR_PLANT_NAME)
 
@@ -1044,16 +1048,38 @@ Respond ONLY with the JSON object, nothing else."""
                 _LOGGER.error("Plant '%s' not found in Notion database", plant_name)
                 return
 
+        # Resolve entity_id from page_id if not already known
+        entity_id_to_remove = entity_id_from_call
+        if not entity_id_to_remove and page_id:
+            for eid, state in hass.states.items():
+                if (eid.startswith("sensor.garden_care_") and
+                        state.attributes.get("page_id") == page_id):
+                    entity_id_to_remove = eid
+                    break
+
         notion = hass.data[DOMAIN][entry.entry_id]["notion"]
 
         try:
             await hass.async_add_executor_job(
                 lambda: notion.pages.update(page_id=page_id, archived=True)
             )
-            _LOGGER.info("Plant page %s archived (deleted) in Notion", page_id)
+            _LOGGER.info("Plant page %s archived in Notion", page_id)
 
-            # Reload the integration so the corresponding sensor is removed
-            await hass.config_entries.async_reload(entry.entry_id)
+            # Remove the sensor entity from HA immediately
+            if entity_id_to_remove:
+                registry = er.async_get(hass)
+                if registry.async_get(entity_id_to_remove):
+                    registry.async_remove(entity_id_to_remove)
+                    _LOGGER.info("Removed HA entity %s", entity_id_to_remove)
+                else:
+                    _LOGGER.warning("Entity %s not found in registry", entity_id_to_remove)
+            else:
+                _LOGGER.warning("Could not determine entity_id for page %s; entity not removed from HA", page_id)
+
+            # Refresh coordinator so the cache no longer contains this plant
+            coordinator = hass.data[DOMAIN][entry.entry_id].get("coordinator")
+            if coordinator:
+                await coordinator.async_request_refresh()
 
         except APIResponseError as err:
             _LOGGER.error("Failed to delete plant page %s: %s", page_id, err)
