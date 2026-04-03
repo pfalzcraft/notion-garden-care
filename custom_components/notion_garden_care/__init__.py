@@ -237,7 +237,8 @@ _REQUIRED_FORMULA_PROPERTIES: dict = {
     },
 }
 URL_BASE = "/notion-garden-care"
-FRONTEND_VERSION = "1.8.2"
+_MANIFEST = json.loads((Path(__file__).parent / "manifest.json").read_text())
+FRONTEND_VERSION = _MANIFEST["version"]  # always matches manifest, ensures correct cache-busting
 
 # This integration can only be set up via config entries
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -486,17 +487,33 @@ async def _async_create_dashboard(hass: HomeAssistant) -> None:
     try:
         import os
 
-        # Create the YAML config file for the dashboard
-        yaml_config = """strategy:
-  type: custom:garden-care
-"""
+        # Create the YAML config file for the dashboard.
+        # Resources are declared here so Lovelace loads the JS *before* it
+        # tries to render the strategy, eliminating the registration race.
+        yaml_config = (
+            f"resources:\n"
+            f"  - url: {URL_BASE}/plant-care-card.js?v={FRONTEND_VERSION}\n"
+            f"    type: module\n"
+            f"  - url: {URL_BASE}/garden-care-strategy.js?v={FRONTEND_VERSION}\n"
+            f"    type: module\n"
+            f"strategy:\n"
+            f"  type: custom:garden-care\n"
+        )
         yaml_path = hass.config.path("garden-care.yaml")
 
-        # Create or update the YAML file
+        # Write if missing or if it predates the resources section
         yaml_exists = await hass.async_add_executor_job(os.path.exists, yaml_path)
-        if not yaml_exists:
+        needs_write = not yaml_exists
+        if yaml_exists:
+            def _read_yaml():
+                with open(yaml_path) as f:
+                    return f.read()
+            existing_content = await hass.async_add_executor_job(_read_yaml)
+            if "resources:" not in existing_content:
+                needs_write = True
+        if needs_write:
             await hass.async_add_executor_job(_write_file, yaml_path, yaml_config)
-            _LOGGER.info("Created garden-care.yaml dashboard config")
+            _LOGGER.info("Wrote garden-care.yaml dashboard config with resources")
 
         # Delete any old storage-mode dashboard config file (from previous versions)
         old_storage_config = hass.config.path(".storage/lovelace.garden-care")

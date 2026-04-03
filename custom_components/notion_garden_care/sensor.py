@@ -13,6 +13,7 @@ from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
@@ -26,6 +27,9 @@ _LOGGER = logging.getLogger(__name__)
 # Scan interval in seconds - convert to timedelta
 SCAN_INTERVAL = timedelta(seconds=3600)
 
+STORAGE_KEY = "notion_garden_care"
+STORAGE_VERSION = 1
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -37,8 +41,10 @@ async def async_setup_entry(
     database_id = hass.data[DOMAIN][config_entry.entry_id]["database_id"]
     notion_token = config_entry.data["notion_token"]
 
+    store = Store(hass, STORAGE_VERSION, f"{STORAGE_KEY}_{config_entry.entry_id}")
+
     async def async_update_data():
-        """Fetch data from Notion API."""
+        """Fetch data from Notion API and persist to local cache."""
         try:
             _LOGGER.debug("Fetching data from Notion database: %s", database_id)
             data = await hass.async_add_executor_job(
@@ -47,6 +53,7 @@ async def async_setup_entry(
                 database_id
             )
             _LOGGER.info("Successfully fetched %d plants from Notion", len(data.get("results", [])))
+            await store.async_save(data)
             return data
         except APIResponseError as err:
             _LOGGER.error("Notion API error: %s", err)
@@ -63,7 +70,15 @@ async def async_setup_entry(
         update_interval=SCAN_INTERVAL,
     )
 
-    # Fetch initial data
+    # Seed coordinator from local cache so sensors are available immediately
+    # even when Notion is unreachable on startup.
+    cached = await store.async_load()
+    if cached:
+        coordinator.data = cached
+        _LOGGER.info("Loaded %d plants from local cache", len(cached.get("results", [])))
+
+    # First refresh: if cache was loaded and Notion is unreachable, the cached
+    # data is preserved (coordinator.data stays non-None) so setup succeeds.
     await coordinator.async_config_entry_first_refresh()
 
     # Store coordinator for service access
