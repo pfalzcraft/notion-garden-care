@@ -76,10 +76,11 @@ async def async_setup_entry(
     if cached:
         coordinator.data = cached
         _LOGGER.info("Loaded %d plants from local cache", len(cached.get("results", [])))
-
-    # First refresh: if cache was loaded and Notion is unreachable, the cached
-    # data is preserved (coordinator.data stays non-None) so setup succeeds.
-    await coordinator.async_config_entry_first_refresh()
+        # Refresh in the background so setup isn't blocked by a slow/unreachable Notion API.
+        hass.async_create_task(coordinator.async_refresh())
+    else:
+        # No cache — must wait for first successful data fetch before adding entities.
+        await coordinator.async_config_entry_first_refresh()
 
     # Store coordinator for service access
     hass.data[DOMAIN][config_entry.entry_id]["coordinator"] = coordinator

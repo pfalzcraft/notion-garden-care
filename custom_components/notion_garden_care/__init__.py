@@ -471,10 +471,74 @@ async def _async_register_frontend(hass: HomeAssistant) -> None:
     except Exception as err:
         _LOGGER.error("Failed to add extra JS URLs: %s", err)
 
+    # Also register in the global Lovelace resource store so resources load
+    # reliably for all dashboards (including the auto-generated one).
+    await _async_register_lovelace_resources(hass)
+
     hass.data[DOMAIN]["frontend_loaded"] = True
 
     # Create the Garden Care dashboard automatically
     await _async_create_dashboard(hass)
+
+
+async def _async_register_lovelace_resources(hass: HomeAssistant) -> None:
+    """Write our JS resources into .storage/lovelace_resources.
+
+    This ensures the card and strategy are loaded globally by Lovelace,
+    independent of any resources: block in the dashboard YAML file.
+    Old entries pointing at URL_BASE are removed first so the version
+    query-string is always up to date.
+    """
+    import os
+
+    storage_path = hass.config.path(".storage/lovelace_resources")
+    card_url = f"{URL_BASE}/plant-care-card.js?v={FRONTEND_VERSION}"
+    strategy_url = f"{URL_BASE}/garden-care-strategy.js?v={FRONTEND_VERSION}"
+
+    resources_to_add = {
+        "notion_garden_care_card": card_url,
+        "notion_garden_care_strategy": strategy_url,
+    }
+
+    def _update():
+        if os.path.exists(storage_path):
+            try:
+                with open(storage_path, "r") as f:
+                    data = json.load(f)
+            except (json.JSONDecodeError, IOError):
+                data = None
+        else:
+            data = None
+
+        if data is None:
+            data = {
+                "version": 1,
+                "minor_version": 1,
+                "key": "lovelace_resources",
+                "data": {"items": []},
+            }
+
+        items = data.get("data", {}).get("items", [])
+
+        # Remove stale entries for our resources (handles version changes too)
+        items = [
+            item for item in items
+            if item.get("id") not in resources_to_add
+            and not item.get("url", "").startswith(URL_BASE + "/")
+        ]
+
+        for resource_id, url in resources_to_add.items():
+            items.append({"id": resource_id, "url": url, "res_type": "module"})
+
+        data["data"]["items"] = items
+        with open(storage_path, "w") as f:
+            json.dump(data, f, indent=2)
+
+    try:
+        await hass.async_add_executor_job(_update)
+        _LOGGER.info("Registered Lovelace resources: %s, %s", card_url, strategy_url)
+    except Exception as err:
+        _LOGGER.warning("Could not register Lovelace resources: %s", err)
 
 
 async def _async_create_dashboard(hass: HomeAssistant) -> None:
