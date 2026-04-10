@@ -658,114 +658,143 @@ async def _async_create_dashboard(hass: HomeAssistant, entry: ConfigEntry) -> No
         _LOGGER.warning("Could not set up dashboard: %s", err)
 
 
+_DASHBOARD_ENTRY = {
+    "id": "garden_care",
+    "url_path": "garden-care",
+    "mode": "yaml",
+    "filename": "garden-care.yaml",
+    "title": "Garden Care",
+    "icon": "mdi:flower",
+    "show_in_sidebar": True,
+    "require_admin": False,
+}
+
+
+def _is_correct_dashboard(item: dict) -> bool:
+    """Return True only if the item is our YAML-mode dashboard."""
+    return (
+        item.get("url_path") == "garden-care"
+        and item.get("mode") == "yaml"
+        and item.get("filename") == "garden-care.yaml"
+    )
+
+
+def _is_conflicting_dashboard(item: dict) -> bool:
+    """Return True if the item occupies our url_path but is NOT the correct YAML dashboard."""
+    return item.get("url_path") == "garden-care" and not _is_correct_dashboard(item)
+
+
 async def _create_dashboard_via_api(hass: HomeAssistant) -> bool:
-    """Create the dashboard using Home Assistant's lovelace collection API."""
+    """Create (or repair) the Garden Care YAML dashboard in Lovelace storage."""
     import os
 
-    dashboard_id = "garden-care"
     storage_path = hass.config.path(".storage/lovelace_dashboards")
 
-    # First check if dashboard already exists in storage file
-    def _check_existing():
+    # ------------------------------------------------------------------ #
+    # 1. Inspect the on-disk storage file
+    # ------------------------------------------------------------------ #
+    def _read_storage():
         if not os.path.exists(storage_path):
-            return False
+            return None
         try:
             with open(storage_path, "r") as f:
-                data = json.load(f)
-            items = data.get("data", {}).get("items", [])
-            return any(
-                item.get("url_path") == dashboard_id or item.get("filename") == "garden-care.yaml"
-                for item in items
+                return json.load(f)
+        except (json.JSONDecodeError, IOError):
+            return None
+
+    def _write_storage(data):
+        with open(storage_path, "w") as f:
+            json.dump(data, f, indent=2)
+
+    storage_data = await hass.async_add_executor_job(_read_storage)
+
+    if storage_data is not None:
+        items = storage_data.get("data", {}).get("items", [])
+
+        if any(_is_correct_dashboard(item) for item in items):
+            _LOGGER.debug("Garden Care YAML dashboard already exists in storage")
+            return True
+
+        if any(_is_conflicting_dashboard(item) for item in items):
+            _LOGGER.warning(
+                "Found a non-YAML 'garden-care' dashboard in storage — replacing with YAML mode"
             )
-        except (json.JSONDecodeError, KeyError, IOError):
-            return False
+            # Remove conflicting entry and add the correct one
+            items = [i for i in items if not _is_conflicting_dashboard(i)]
+            items.append(_DASHBOARD_ENTRY)
+            storage_data["data"]["items"] = items
+            await hass.async_add_executor_job(_write_storage, storage_data)
+            _LOGGER.info("Replaced conflicting dashboard entry in storage file")
+            return True
 
-    if await hass.async_add_executor_job(_check_existing):
-        _LOGGER.debug("Garden Care dashboard already exists in storage")
-        return True
-
-    # Try using HA's lovelace API first
+    # ------------------------------------------------------------------ #
+    # 2. Try using HA's in-memory lovelace collection API
+    # ------------------------------------------------------------------ #
     try:
         lovelace_data = hass.data.get("lovelace")
         if lovelace_data:
-            # Use attribute access to avoid deprecation warning (HA 2026.2+)
             dashboards = getattr(lovelace_data, "dashboards", None)
             if dashboards is None and hasattr(lovelace_data, "get"):
                 dashboards = lovelace_data.get("dashboards")
 
             if dashboards and hasattr(dashboards, "async_create_item"):
-                # Check if already exists in collection
-                exists = False
                 if hasattr(dashboards, "data"):
-                    for item in dashboards.data.values():
-                        if item.get("url_path") == dashboard_id or item.get("filename") == "garden-care.yaml":
-                            exists = True
-                            break
-
-                if not exists:
-                    await dashboards.async_create_item({
-                        "url_path": dashboard_id,
-                        "mode": "yaml",
-                        "filename": "garden-care.yaml",
-                        "title": "Garden Care",
-                        "icon": "mdi:flower",
-                        "show_in_sidebar": True,
-                        "require_admin": False,
-                    })
-                    _LOGGER.info("Successfully created Garden Care dashboard via HA API")
-                    return True
+                    correct = any(_is_correct_dashboard(item) for item in dashboards.data.values())
+                    conflicting_ids = [
+                        k for k, item in dashboards.data.items()
+                        if _is_conflicting_dashboard(item)
+                    ]
                 else:
-                    _LOGGER.debug("Garden Care dashboard already exists in collection")
+                    correct = False
+                    conflicting_ids = []
+
+                if correct:
+                    _LOGGER.debug("Garden Care YAML dashboard already exists in collection")
                     return True
+
+                # Delete any conflicting storage-mode entry first
+                if conflicting_ids and hasattr(dashboards, "async_delete_item"):
+                    for cid in conflicting_ids:
+                        try:
+                            await dashboards.async_delete_item(cid)
+                            _LOGGER.info("Deleted conflicting dashboard '%s' via HA API", cid)
+                        except Exception as del_err:
+                            _LOGGER.debug("Could not delete conflicting dashboard: %s", del_err)
+
+                await dashboards.async_create_item(dict(_DASHBOARD_ENTRY))
+                _LOGGER.info("Successfully created Garden Care dashboard via HA API")
+                return True
 
     except Exception as err:
         _LOGGER.debug("Could not create dashboard via HA API: %s", err)
 
-    # Fallback: Create/update the storage file directly
+    # ------------------------------------------------------------------ #
+    # 3. Fallback: write the storage file from scratch
+    # ------------------------------------------------------------------ #
     try:
         def _create_storage_file():
-            # Read existing data or create new structure
             if os.path.exists(storage_path):
-                with open(storage_path, "r") as f:
-                    data = json.load(f)
+                try:
+                    with open(storage_path, "r") as f:
+                        data = json.load(f)
+                except (json.JSONDecodeError, IOError):
+                    data = {"version": 1, "minor_version": 1, "key": "lovelace_dashboards", "data": {"items": []}}
             else:
-                data = {
-                    "version": 1,
-                    "minor_version": 1,
-                    "key": "lovelace_dashboards",
-                    "data": {"items": []}
-                }
+                data = {"version": 1, "minor_version": 1, "key": "lovelace_dashboards", "data": {"items": []}}
 
             items = data.get("data", {}).get("items", [])
-
-            # Check if already exists
-            for item in items:
-                if item.get("url_path") == dashboard_id or item.get("filename") == "garden-care.yaml":
-                    return True  # Already exists
-
-            # Add new dashboard entry
-            items.append({
-                "id": dashboard_id.replace("-", "_"),
-                "url_path": dashboard_id,
-                "mode": "yaml",
-                "filename": "garden-care.yaml",
-                "title": "Garden Care",
-                "icon": "mdi:flower",
-                "show_in_sidebar": True,
-                "require_admin": False,
-            })
-
+            # Remove any conflicting entry, then append the correct one
+            items = [i for i in items if not _is_conflicting_dashboard(i)]
+            if not any(_is_correct_dashboard(i) for i in items):
+                items.append(dict(_DASHBOARD_ENTRY))
             data["data"]["items"] = items
 
             with open(storage_path, "w") as f:
                 json.dump(data, f, indent=2)
 
-            return True
-
-        result = await hass.async_add_executor_job(_create_storage_file)
-        if result:
-            _LOGGER.info("Created Garden Care dashboard via storage file")
-            return True
+        await hass.async_add_executor_job(_create_storage_file)
+        _LOGGER.info("Created Garden Care dashboard via storage file (fallback)")
+        return True
 
     except Exception as err:
         _LOGGER.warning("Could not create dashboard storage file: %s", err)
@@ -1206,6 +1235,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         hass.data[DOMAIN].pop(entry.entry_id)
+        # Reset so the dashboard is re-validated on the next setup (e.g. after reload)
+        hass.data[DOMAIN].pop("dashboard_created", None)
 
     # Unregister services if this is the last entry
     if not hass.data[DOMAIN]:
