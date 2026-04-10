@@ -27,7 +27,6 @@ from .const import (
     CONF_CONVERSATION_AGENT,
     NOTION_API_VERSION,
     PLANT_TYPES,
-    LOCATIONS,
     WATER_AMOUNTS,
     SUN_EXPOSURE,
     TOXICITY,
@@ -163,7 +162,6 @@ def _create_database_sync(notion: Client, parent_page_id: str) -> dict:
                     )]
                 }
             },
-            "Location": {"type": "rich_text", "rich_text": {}},
             "Active": {"type": "checkbox", "checkbox": {}},
             "Lifecycle": {
                 "type": "select",
@@ -354,7 +352,6 @@ def _add_example_plants(notion: Client, database_id: str) -> None:
                     "title": [{"text": {"content": plant_data["Name"]}}]
                 },
                 "Type": {"select": {"name": plant_data["Type"]}},
-                "Location": {"rich_text": [{"text": {"content": plant_data["Location"]}}]},
                 "Active": {"checkbox": plant_data["Active"]},
                 "Fertilize Interval (days)": {"number": plant_data["Fertilize Interval (days)"]},
                 "Last Fertilized": {"date": {"start": last_fertilized.strftime("%Y-%m-%d")}},

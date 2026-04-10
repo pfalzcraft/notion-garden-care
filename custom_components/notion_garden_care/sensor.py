@@ -597,7 +597,6 @@ class PlantSensor(CoordinatorEntity, SensorEntity):
             # ── Basic Info ──
             "Name",
             "Type",
-            "Location",
             "Active",
             "Lifecycle",
             "Plant Date",

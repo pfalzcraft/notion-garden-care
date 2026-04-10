@@ -2,7 +2,7 @@
 
 mark_as_watered:
   name: Mark Plant as Watered
-  description: Updates the "Last Watered" date in Notion for a plant
+  description: Updates the "Last Watered" date in Notion for a plant or all plants in a HA area
   fields:
     entity_id:
       name: Plant
@@ -23,6 +23,11 @@ mark_as_watered:
       example: "Tomatoes"
       selector:
         text:
+    area_id:
+      name: Area
+      description: Update all plants in this HA area (alternative to selecting a single plant)
+      selector:
+        area:
     date:
       name: Date
       description: Date to set (defaults to today if not specified)
@@ -31,7 +36,7 @@ mark_as_watered:
 
 mark_as_fertilized:
   name: Mark Plant as Fertilized
-  description: Updates the "Last Fertilized" date in Notion for a plant
+  description: Updates the "Last Fertilized" date in Notion for a plant or all plants in a HA area
   fields:
     entity_id:
       name: Plant
@@ -52,6 +57,11 @@ mark_as_fertilized:
       example: "Rose Bush"
       selector:
         text:
+    area_id:
+      name: Area
+      description: Update all plants in this HA area (alternative to selecting a single plant)
+      selector:
+        area:
     date:
       name: Date
       description: Date to set (defaults to today if not specified)
@@ -60,7 +70,7 @@ mark_as_fertilized:
 
 mark_as_pruned:
   name: Mark Plant as Pruned
-  description: Updates the "Last Pruned" date in Notion for a plant
+  description: Updates the "Last Pruned" date in Notion for a plant or all plants in a HA area
   fields:
     entity_id:
       name: Plant
@@ -81,6 +91,11 @@ mark_as_pruned:
       example: "Apple Tree"
       selector:
         text:
+    area_id:
+      name: Area
+      description: Update all plants in this HA area (alternative to selecting a single plant)
+      selector:
+        area:
     date:
       name: Date
       description: Date to set (defaults to today if not specified)
@@ -89,7 +104,7 @@ mark_as_pruned:
 
 mark_as_aerated:
   name: Mark Lawn as Aerated
-  description: Updates the "Last Aeration" date in Notion for a lawn
+  description: Updates the "Last Aeration" date in Notion for a lawn or all plants in a HA area
   fields:
     entity_id:
       name: Plant
@@ -110,6 +125,11 @@ mark_as_aerated:
       example: "Lawn"
       selector:
         text:
+    area_id:
+      name: Area
+      description: Update all plants in this HA area (alternative to selecting a single plant)
+      selector:
+        area:
     date:
       name: Date
       description: Date to set (defaults to today if not specified)
@@ -118,7 +138,7 @@ mark_as_aerated:
 
 mark_as_harvested:
   name: Mark Plant as Harvested
-  description: Updates the "Last Harvested" date in Notion for a plant
+  description: Updates the "Last Harvested" date in Notion for a plant or all plants in a HA area
   fields:
     entity_id:
       name: Plant
@@ -139,6 +159,11 @@ mark_as_harvested:
       example: "Tomatoes"
       selector:
         text:
+    area_id:
+      name: Area
+      description: Update all plants in this HA area (alternative to selecting a single plant)
+      selector:
+        area:
     date:
       name: Date
       description: Date to set (defaults to today if not specified)
@@ -147,7 +172,7 @@ mark_as_harvested:
 
 mark_as_sanded:
   name: Mark Lawn as Sanded
-  description: Updates the "Last Sanded" date in Notion for a lawn
+  description: Updates the "Last Sanded" date in Notion for a lawn or all plants in a HA area
   fields:
     entity_id:
       name: Plant
@@ -168,6 +193,11 @@ mark_as_sanded:
       example: "Lawn"
       selector:
         text:
+    area_id:
+      name: Area
+      description: Update all plants in this HA area (alternative to selecting a single plant)
+      selector:
+        area:
     date:
       name: Date
       description: Date to set (defaults to today if not specified)
@@ -206,7 +236,6 @@ update_plant_property:
           options:
             # ── Basic Info ──
             - "Type"
-            - "Location"
             - "Active"
             - "Lifecycle"
             - "Plant Date"

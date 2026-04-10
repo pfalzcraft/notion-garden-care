@@ -337,7 +337,6 @@ class PlantCareCard extends HTMLElement {
     const attrs = state.attributes;
     const plantName = attrs.plant_name || attrs.name || state.entity_id;
     const plantType = attrs.type || 'Plant';
-    const location = attrs.location || '';
     const isLawn = plantType === 'Lawn';
 
     // Get care schedule data - next dates
@@ -391,13 +390,6 @@ class PlantCareCard extends HTMLElement {
           font-size: 1.2em;
           font-weight: 500;
           color: var(--primary-text-color);
-        }
-        .location-badge {
-          background: var(--secondary-background-color, #f5f5f5);
-          padding: 4px 8px;
-          border-radius: 12px;
-          font-size: 0.85em;
-          color: var(--secondary-text-color);
         }
         .care-schedule {
           display: flex;
@@ -629,7 +621,6 @@ class PlantCareCard extends HTMLElement {
             <ha-icon class="plant-icon" icon="${this.getPlantIcon(plantType)}"></ha-icon>
             <span class="plant-name">${plantName}</span>
           </div>
-          ${location ? `<span class="location-badge">${location}</span>` : ''}
           <ha-icon class="info-icon" icon="mdi:information-outline" id="info-toggle" title="Show all attributes"></ha-icon>
         </div>
 

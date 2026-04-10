@@ -38,11 +38,11 @@ ATTR_PROPERTY_NAME = "property_name"
 ATTR_PROPERTY_VALUE = "property_value"
 ATTR_DATE = "date"
 ATTR_ENTITY_ID = "entity_id"
+ATTR_AREA_ID = "area_id"
 
 # Database Properties
 PROPERTY_NAME = "Name"
 PROPERTY_TYPE = "Type"
-PROPERTY_LOCATION = "Location"
 PROPERTY_ACTIVE = "Active"
 PROPERTY_WATER_INTERVAL = "Water Interval (days)"
 PROPERTY_LAST_WATERED = "Last Watered"
@@ -61,9 +61,6 @@ PROPERTY_NOTES = "Notes"
 
 # Plant Types
 PLANT_TYPES = ["Plant", "Tree", "Shrub", "Vegetable", "Herb", "Lawn"]
-
-# Locations
-LOCATIONS = ["Garden", "Balcony", "Terrace", "Conservatory", "Indoor"]
 
 # Water Amounts
 WATER_AMOUNTS = ["Low", "Medium", "High"]
@@ -121,7 +118,6 @@ PROPERTY_ADDITIONAL_INFO = "Additional Information"
 UPDATABLE_PROPERTIES = [
     # ── Basic Info ──
     "Type",
-    "Location",
     "Active",
     "Lifecycle",
     "Plant Date",
@@ -173,7 +169,6 @@ EXAMPLE_PLANTS = [
         # ── Basic Info ──
         "Name": "Tomatoes",
         "Type": "Vegetable",
-        "Location": "Garden",
         "Active": True,
         "Lifecycle": "Annual",
         # ── Plant Characteristics ──
@@ -210,7 +205,6 @@ EXAMPLE_PLANTS = [
         # ── Basic Info ──
         "Name": "Rose Bush",
         "Type": "Plant",
-        "Location": "Garden",
         "Active": True,
         "Lifecycle": "Perennial",
         # ── Plant Characteristics ──
@@ -244,7 +238,6 @@ EXAMPLE_PLANTS = [
         # ── Basic Info ──
         "Name": "Apple Tree",
         "Type": "Tree",
-        "Location": "Garden",
         "Active": True,
         "Lifecycle": "Perennial",
         # ── Plant Characteristics ──
@@ -281,7 +274,6 @@ EXAMPLE_PLANTS = [
         # ── Basic Info ──
         "Name": "Basil",
         "Type": "Herb",
-        "Location": "Balcony",
         "Active": True,
         "Lifecycle": "Annual",
         # ── Plant Characteristics ──
@@ -318,7 +310,6 @@ EXAMPLE_PLANTS = [
         # ── Basic Info ──
         "Name": "Lawn",
         "Type": "Lawn",
-        "Location": "Garden",
         "Active": True,
         "Lifecycle": "Perennial",
         # ── Plant Characteristics ──

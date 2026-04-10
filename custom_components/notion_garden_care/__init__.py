@@ -1,6 +1,7 @@
 """The Notion Garden Care integration."""
 from __future__ import annotations
 
+import asyncio
 import logging
 import json
 import re
@@ -43,6 +44,7 @@ from .const import (
     ATTR_PROPERTY_VALUE,
     ATTR_DATE,
     ATTR_ENTITY_ID,
+    ATTR_AREA_ID,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -65,7 +67,6 @@ _REQUIRED_SIMPLE_PROPERTIES: dict = {
             ]
         },
     },
-    "Location": {"type": "rich_text", "rich_text": {}},
     "Active": {"type": "checkbox", "checkbox": {}},
     "Lifecycle": {
         "type": "select",
@@ -249,6 +250,7 @@ UPDATE_SERVICE_SCHEMA = vol.Schema(
         vol.Optional(ATTR_PAGE_ID): cv.string,
         vol.Optional(ATTR_PLANT_NAME): cv.string,
         vol.Optional(ATTR_DATE): cv.string,
+        vol.Optional(ATTR_AREA_ID): cv.string,
     }
 )
 
@@ -309,39 +311,7 @@ async def _async_ensure_database_up_to_date(
 
         added: list[str] = []
 
-        # ── Step 2: retype properties whose type has changed ─────────────
-        # Maps property name → expected config (without "type" key).
-        # Only listed here when an existing property needs a type change.
-        _PROPERTY_TYPE_CHANGES: dict = {
-            "Location": {"rich_text": {}},  # was select, now free text
-        }
-        to_retype: dict = {
-            name: new_spec
-            for name, new_spec in _PROPERTY_TYPE_CHANGES.items()
-            if name in db_props and db_props[name].get("type") != list(new_spec.keys())[0]
-        }
-        if to_retype:
-            _LOGGER.info(
-                "Retyping %d column(s) in Notion database: %s",
-                len(to_retype), list(to_retype.keys()),
-            )
-            resp = httpx.patch(
-                base_url,
-                headers=headers,
-                json={"properties": to_retype},
-                timeout=30.0,
-            )
-            if resp.status_code >= 400:
-                _LOGGER.error(
-                    "Notion API rejected property type change (HTTP %s): %s. "
-                    "Please manually change the 'Location' column type from "
-                    "'Select' to 'Text' in your Notion database.",
-                    resp.status_code, resp.text,
-                )
-            else:
-                added.extend(to_retype.keys())
-
-        # ── Step 3: compute missing properties ───────────────────────────
+        # ── Step 2: compute missing properties ───────────────────────────
         # Strip the "type" key — the Notion PATCH API infers type from the
         # config key (e.g. "rich_text", "date", "formula", …).
         missing_simple: dict = {
@@ -355,7 +325,7 @@ async def _async_ensure_database_up_to_date(
             if name not in existing
         }
 
-        # ── Step 4: add simple properties first ──────────────────────────
+        # ── Step 3: add simple properties first ──────────────────────────
         if missing_simple:
             _LOGGER.info(
                 "Adding %d missing simple column(s) to Notion database: %s",
@@ -375,7 +345,7 @@ async def _async_ensure_database_up_to_date(
                 resp.raise_for_status()
             added.extend(missing_simple.keys())
 
-        # ── Step 5: add formula properties (dependencies now exist) ──────
+        # ── Step 4: add formula properties (dependencies now exist) ──────
         if missing_formula:
             _LOGGER.info(
                 "Adding %d missing formula column(s) to Notion database: %s",
@@ -752,6 +722,21 @@ def _write_file(path: str, content: str) -> None:
         f.write(content)
 
 
+async def _find_pages_by_area(hass: HomeAssistant, area_id: str) -> list[str]:
+    """Return page_ids for all plant sensors assigned to the given HA area."""
+    from homeassistant.helpers import entity_registry as er
+    entity_reg = er.async_get(hass)
+    page_ids = []
+    for entry in entity_reg.entities.values():
+        if entry.area_id == area_id and entry.domain == "sensor" and entry.platform == DOMAIN:
+            state = hass.states.get(entry.entity_id)
+            if state:
+                page_id = state.attributes.get("page_id")
+                if page_id:
+                    page_ids.append(page_id)
+    return page_ids
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Notion Garden Care from a config entry."""
     notion_token = entry.data[CONF_NOTION_TOKEN]
@@ -807,126 +792,75 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         return None
 
+    # ── Shared bulk helper ────────────────────────────────────────────────────
+    async def _handle_bulk_or_single(
+        call: ServiceCall, notion_property: str
+    ) -> None:
+        """Update a date property for one plant or all plants in a HA area."""
+        area_id = call.data.get(ATTR_AREA_ID)
+        if area_id:
+            page_ids = await _find_pages_by_area(hass, area_id)
+            if not page_ids:
+                _LOGGER.warning(
+                    "No plant sensors found in HA area '%s'", area_id
+                )
+                return
+            await asyncio.gather(*[
+                _update_date_property(
+                    hass, entry.entry_id, pid, notion_property, call.data.get(ATTR_DATE)
+                )
+                for pid in page_ids
+            ])
+            return
+
+        # Single-plant path (entity_id / page_id / plant_name)
+        page_id = _get_page_id_from_call(call)
+        plant_name = call.data.get(ATTR_PLANT_NAME)
+
+        if not page_id and not plant_name:
+            _LOGGER.error(
+                "Provide entity_id, page_id, plant_name, or area_id"
+            )
+            return
+
+        if not page_id and plant_name:
+            page_id = await _find_page_by_name(hass, entry.entry_id, plant_name)
+            if not page_id:
+                _LOGGER.error("Plant '%s' not found", plant_name)
+                return
+
+        await _update_date_property(
+            hass, entry.entry_id, page_id, notion_property, call.data.get(ATTR_DATE)
+        )
+
     # Register services
     async def handle_update_watered(call: ServiceCall) -> None:
         """Handle mark as watered service."""
-        page_id = _get_page_id_from_call(call)
-        plant_name = call.data.get(ATTR_PLANT_NAME)
-
-        if not page_id and not plant_name:
-            _LOGGER.error("Either entity_id, page_id, or plant_name must be provided")
-            return
-
-        if not page_id and plant_name:
-            # Find page ID by plant name
-            page_id = await _find_page_by_name(hass, entry.entry_id, plant_name)
-            if not page_id:
-                _LOGGER.error("Plant '%s' not found", plant_name)
-                return
-
-        await _update_date_property(hass, entry.entry_id, page_id, "Last Watered", call.data.get(ATTR_DATE))
+        await _handle_bulk_or_single(call, "Last Watered")
 
     async def handle_update_fertilized(call: ServiceCall) -> None:
         """Handle mark as fertilized service."""
-        page_id = _get_page_id_from_call(call)
-        plant_name = call.data.get(ATTR_PLANT_NAME)
-
-        if not page_id and not plant_name:
-            _LOGGER.error("Either entity_id, page_id, or plant_name must be provided")
-            return
-
-        if not page_id and plant_name:
-            page_id = await _find_page_by_name(hass, entry.entry_id, plant_name)
-            if not page_id:
-                _LOGGER.error("Plant '%s' not found", plant_name)
-                return
-
-        await _update_date_property(hass, entry.entry_id, page_id, "Last Fertilized", call.data.get(ATTR_DATE))
+        await _handle_bulk_or_single(call, "Last Fertilized")
 
     async def handle_update_pruned(call: ServiceCall) -> None:
         """Handle mark as pruned service."""
-        page_id = _get_page_id_from_call(call)
-        plant_name = call.data.get(ATTR_PLANT_NAME)
-
-        if not page_id and not plant_name:
-            _LOGGER.error("Either entity_id, page_id, or plant_name must be provided")
-            return
-
-        if not page_id and plant_name:
-            page_id = await _find_page_by_name(hass, entry.entry_id, plant_name)
-            if not page_id:
-                _LOGGER.error("Plant '%s' not found", plant_name)
-                return
-
-        await _update_date_property(hass, entry.entry_id, page_id, "Last Pruned", call.data.get(ATTR_DATE))
+        await _handle_bulk_or_single(call, "Last Pruned")
 
     async def handle_update_aerated(call: ServiceCall) -> None:
         """Handle mark as aerated service (for lawns)."""
-        page_id = _get_page_id_from_call(call)
-        plant_name = call.data.get(ATTR_PLANT_NAME)
-
-        if not page_id and not plant_name:
-            _LOGGER.error("Either entity_id, page_id, or plant_name must be provided")
-            return
-
-        if not page_id and plant_name:
-            page_id = await _find_page_by_name(hass, entry.entry_id, plant_name)
-            if not page_id:
-                _LOGGER.error("Plant '%s' not found", plant_name)
-                return
-
-        await _update_date_property(hass, entry.entry_id, page_id, "Last Aeration", call.data.get(ATTR_DATE))
+        await _handle_bulk_or_single(call, "Last Aeration")
 
     async def handle_update_harvested(call: ServiceCall) -> None:
         """Handle mark as harvested service."""
-        page_id = _get_page_id_from_call(call)
-        plant_name = call.data.get(ATTR_PLANT_NAME)
-
-        if not page_id and not plant_name:
-            _LOGGER.error("Either entity_id, page_id, or plant_name must be provided")
-            return
-
-        if not page_id and plant_name:
-            page_id = await _find_page_by_name(hass, entry.entry_id, plant_name)
-            if not page_id:
-                _LOGGER.error("Plant '%s' not found", plant_name)
-                return
-
-        await _update_date_property(hass, entry.entry_id, page_id, "Last Harvested", call.data.get(ATTR_DATE))
+        await _handle_bulk_or_single(call, "Last Harvested")
 
     async def handle_update_sanded(call: ServiceCall) -> None:
         """Handle mark as sanded service (for lawns)."""
-        page_id = _get_page_id_from_call(call)
-        plant_name = call.data.get(ATTR_PLANT_NAME)
-
-        if not page_id and not plant_name:
-            _LOGGER.error("Either entity_id, page_id, or plant_name must be provided")
-            return
-
-        if not page_id and plant_name:
-            page_id = await _find_page_by_name(hass, entry.entry_id, plant_name)
-            if not page_id:
-                _LOGGER.error("Plant '%s' not found", plant_name)
-                return
-
-        await _update_date_property(hass, entry.entry_id, page_id, "Last Sanded", call.data.get(ATTR_DATE))
+        await _handle_bulk_or_single(call, "Last Sanded")
 
     async def handle_update_mowed(call: ServiceCall) -> None:
         """Handle mark as mowed service (for lawns)."""
-        page_id = _get_page_id_from_call(call)
-        plant_name = call.data.get(ATTR_PLANT_NAME)
-
-        if not page_id and not plant_name:
-            _LOGGER.error("Either entity_id, page_id, or plant_name must be provided")
-            return
-
-        if not page_id and plant_name:
-            page_id = await _find_page_by_name(hass, entry.entry_id, plant_name)
-            if not page_id:
-                _LOGGER.error("Plant '%s' not found", plant_name)
-                return
-
-        await _update_date_property(hass, entry.entry_id, page_id, "Last Mowed", call.data.get(ATTR_DATE))
+        await _handle_bulk_or_single(call, "Last Mowed")
 
     async def handle_update_property(call: ServiceCall) -> None:
         """Handle generic property update service."""
