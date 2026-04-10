@@ -1,16 +1,16 @@
 /**
  * Garden Care — frontend elements
  *
- * GardenAreaCard (custom:garden-area-card)
- *   Area section header with bulk-care action buttons.
+ * GardenAreaCard  (custom:garden-area-card)
+ *   Area section header. Uses the HA area picture as background when available.
+ *   Bulk-care action buttons: Water All / Fertilize All / Prune All / Harvest All.
  *
- * GardenCareRootCard (custom:garden-care-root-card)
- *   Single self-healing container card placed in garden-care.yaml.
- *   Reads all notion_garden_care plant sensors directly from hass.states,
- *   groups them by HA area, and dynamically instantiates child cards.
- *   Rebuilds layout only when the set of entities or their area assignments
- *   change — otherwise just propagates hass updates to each child card.
- *   No YAML regeneration ever required.
+ * GardenCareRootCard  (custom:garden-care-root-card)
+ *   Self-healing container card placed in garden-care.yaml.
+ *   - Auto-discovers all notion_garden_care plant sensors from hass.states.
+ *   - Groups them by HA area; renders a responsive grid (one column per area).
+ *   - Rebuilds layout only when the set of entities or area assignments change.
+ *   - Just propagates hass on normal state updates — zero re-renders for live data.
  */
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -26,8 +26,9 @@ class GardenAreaCard extends HTMLElement {
   }
 
   _render() {
-    const areaName = this._config.area || 'Area';
-    const areaId   = this._config.area_id;
+    const areaName  = this._config.area    || 'Area';
+    const areaId    = this._config.area_id;
+    const picture   = this._config.picture || null;   // HA area picture URL
 
     const actions = [
       { label: '💧 Water All',     service: 'mark_as_watered'    },
@@ -41,26 +42,57 @@ class GardenAreaCard extends HTMLElement {
       <style>
         :host { display: block; }
         .area-header {
-          display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
-          padding: 12px 16px 10px;
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 8px;
+          padding: 14px 16px 12px;
           background: var(--primary-color, #03a9f4);
           border-radius: var(--ha-card-border-radius, 12px);
-          margin-bottom: 4px;
+          overflow: hidden;
+          position: relative;
+          min-height: 60px;
+        }
+        .area-header.has-picture {
+          background-size: cover;
+          background-position: center;
+        }
+        /* Dark overlay for text readability when a picture is set */
+        .area-header.has-picture::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.48);
         }
         .area-name {
-          font-size: 1.1em; font-weight: 600;
-          color: var(--text-primary-color, #fff);
-          flex: 1; min-width: 100px;
+          font-size: 1.1em;
+          font-weight: 600;
+          color: #fff;
+          flex: 1;
+          min-width: 100px;
+          position: relative;
+          z-index: 1;
+          text-shadow: 0 1px 3px rgba(0,0,0,0.4);
         }
         .action-btn {
-          background: rgba(255,255,255,0.2); color: var(--text-primary-color, #fff);
-          border: none; border-radius: 8px; padding: 6px 10px; font-size: 0.8em;
-          cursor: pointer; transition: background 0.15s; white-space: nowrap;
+          background: rgba(255,255,255,0.22);
+          color: #fff;
+          border: none;
+          border-radius: 8px;
+          padding: 6px 10px;
+          font-size: 0.8em;
+          cursor: pointer;
+          transition: background 0.15s;
+          white-space: nowrap;
+          position: relative;
+          z-index: 1;
+          backdrop-filter: blur(4px);
         }
-        .action-btn:hover  { background: rgba(255,255,255,0.35); }
+        .action-btn:hover  { background: rgba(255,255,255,0.38); }
         .action-btn:active { background: rgba(255,255,255,0.15); }
       </style>
-      <div class="area-header">
+      <div class="area-header ${picture ? 'has-picture' : ''}"
+           ${picture ? `style="background-image:url('${picture}')"` : ''}>
         <span class="area-name">📍 ${areaName}</span>
         ${actions.map(a =>
           `<button class="action-btn" data-service="${a.service}">${a.label}</button>`
@@ -83,10 +115,10 @@ class GardenAreaCard extends HTMLElement {
 class GardenCareRootCard extends HTMLElement {
   constructor() {
     super();
-    this._hass      = null;
-    this._layoutKey = null;
+    this._hass       = null;
+    this._layoutKey  = null;
     this._childCards = [];
-    this._buildId   = 0;
+    this._buildId    = 0;
     this.attachShadow({ mode: 'open' });
     this.shadowRoot.innerHTML = '<style>:host{display:block}</style>';
   }
@@ -105,7 +137,7 @@ class GardenCareRootCard extends HTMLElement {
     }
   }
 
-  /** A string that changes whenever the set of plants or their area assignments change. */
+  /** Changes when entity list or their area assignments change. */
   _getLayoutKey(hass) {
     const SKIP = ['plants_to_', 'active_plants', '_database'];
     return Object.entries(hass.states || {})
@@ -122,31 +154,53 @@ class GardenCareRootCard extends HTMLElement {
   async _buildLayout() {
     const buildId = ++this._buildId;
 
-    // Wait for sibling custom elements (resolves immediately if already defined)
     await Promise.all([
       customElements.whenDefined('add-plant-card'),
       customElements.whenDefined('plant-care-card'),
       customElements.whenDefined('garden-area-card'),
     ]);
 
-    // A newer build was triggered while we were waiting — bail
-    if (buildId !== this._buildId) return;
+    if (buildId !== this._buildId) return;   // newer build triggered, bail
 
     const hass = this._hass;
     const root = this.shadowRoot;
-    root.innerHTML = '<style>:host{display:block}</style>';
+
+    root.innerHTML = `
+      <style>
+        :host { display: block; }
+        .add-plant-wrapper { margin-bottom: 16px; }
+        .grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+          gap: 12px;
+          align-items: start;
+        }
+        .area-column {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .empty-msg {
+          padding: 20px;
+          text-align: center;
+          color: var(--secondary-text-color);
+          font-style: italic;
+        }
+      </style>
+      <div class="add-plant-wrapper" id="add-plant"></div>
+      <div class="grid" id="grid"></div>
+    `;
+
     this._childCards = [];
 
-    const frag = document.createDocumentFragment();
-
-    // ── Add Plant card ────────────────────────────────────────────────────
+    // ── Add Plant card (full width above the grid) ─────────────────────────
     const addCard = document.createElement('add-plant-card');
     addCard.setConfig({});
     addCard.hass = hass;
-    frag.appendChild(addCard);
+    root.getElementById('add-plant').appendChild(addCard);
     this._childCards.push(addCard);
 
-    // ── Collect plant entities ────────────────────────────────────────────
+    // ── Collect plant entities ─────────────────────────────────────────────
     const SKIP = ['plants_to_', 'active_plants', '_database'];
     const plants = Object.entries(hass.states || {})
       .filter(([id, s]) =>
@@ -159,58 +213,68 @@ class GardenCareRootCard extends HTMLElement {
         return {
           entityId: id,
           areaId,
-          areaName: areaId ? (hass.areas?.[areaId]?.name ?? areaId) : null,
+          areaName:    areaId ? (hass.areas?.[areaId]?.name    ?? areaId) : null,
+          areaPicture: areaId ? (hass.areas?.[areaId]?.picture ?? null)   : null,
         };
       })
       .sort((a, b) => a.entityId.localeCompare(b.entityId));
 
+    const grid = root.getElementById('grid');
+
     if (plants.length === 0) {
-      const card = document.createElement('ha-card');
-      card.innerHTML = `<div style="padding:20px;text-align:center;color:var(--secondary-text-color)">
-        <p>No plants found. Use the form above to add your first plant.</p></div>`;
-      frag.appendChild(card);
-      root.appendChild(frag);
+      const msg = document.createElement('p');
+      msg.className = 'empty-msg';
+      msg.textContent = 'No plants found. Use the Add Plant form above to get started.';
+      grid.appendChild(msg);
       return;
     }
 
-    // ── Group by area ─────────────────────────────────────────────────────
-    const areas  = {}; // areaName → { areaId, plants[] }
+    // ── Group by area ──────────────────────────────────────────────────────
+    const areas  = {};   // areaName → { areaId, picture, plants[] }
     const noArea = [];
 
     for (const p of plants) {
       if (p.areaId && p.areaName) {
-        if (!areas[p.areaName]) areas[p.areaName] = { areaId: p.areaId, plants: [] };
+        if (!areas[p.areaName]) areas[p.areaName] = { areaId: p.areaId, picture: p.areaPicture, plants: [] };
         areas[p.areaName].plants.push(p);
       } else {
         noArea.push(p);
       }
     }
 
-    // ── Render area groups ────────────────────────────────────────────────
-    const _addPlantCard = (entityId) => {
+    // ── Helper: create a plant-care-card ───────────────────────────────────
+    const _mkPlantCard = (entityId) => {
       const card = document.createElement('plant-care-card');
       card.setConfig({ entity: entityId });
       card.hass = hass;
-      frag.appendChild(card);
       this._childCards.push(card);
+      return card;
     };
 
+    // ── Render one grid column per area ────────────────────────────────────
     for (const areaName of Object.keys(areas).sort()) {
       const group = areas[areaName];
+      const col   = document.createElement('div');
+      col.className = 'area-column';
 
       const areaCard = document.createElement('garden-area-card');
-      areaCard.setConfig({ area: areaName, area_id: group.areaId });
+      areaCard.setConfig({ area: areaName, area_id: group.areaId, picture: group.picture });
       areaCard.hass = hass;
-      frag.appendChild(areaCard);
+      col.appendChild(areaCard);
       this._childCards.push(areaCard);
 
-      for (const p of group.plants) _addPlantCard(p.entityId);
+      for (const p of group.plants) col.appendChild(_mkPlantCard(p.entityId));
+
+      grid.appendChild(col);
     }
 
-    // ── Plants with no area ───────────────────────────────────────────────
-    for (const p of noArea) _addPlantCard(p.entityId);
-
-    root.appendChild(frag);
+    // ── Ungrouped plants in their own column ───────────────────────────────
+    if (noArea.length > 0) {
+      const col = document.createElement('div');
+      col.className = 'area-column';
+      for (const p of noArea) col.appendChild(_mkPlantCard(p.entityId));
+      grid.appendChild(col);
+    }
   }
 }
 
@@ -229,7 +293,7 @@ if (!window.customCards.find(c => c.type === 'garden-care-root-card')) {
   window.customCards.push({
     type: 'garden-care-root-card',
     name: 'Garden Care Dashboard',
-    description: 'Auto-discovering garden care dashboard — plants grouped by HA area',
+    description: 'Auto-discovering garden care dashboard — plants grouped by HA area in a responsive grid',
     preview: false,
     documentationURL: 'https://github.com/pfalzcraft/notion-garden-care',
   });

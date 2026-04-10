@@ -1028,7 +1028,10 @@ class AddPlantCard extends HTMLElement {
         plant_name: plantName
       });
 
-      this.showMessage(`Adding "${plantName}"... This may take a moment.`, 'success');
+      // Trigger a database refresh so the new plant entity appears automatically
+      this._hass.callService('notion_garden_care', 'refresh_database', {}).catch(() => {});
+
+      this.showMessage(`"${plantName}" added! The dashboard will update in a moment.`, 'success');
       input.value = '';
 
     } catch (err) {
