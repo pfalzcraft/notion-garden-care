@@ -117,7 +117,8 @@ The integration will:
 - ✅ Create 5 aggregate sensors in Home Assistant
 - ✅ Create individual sensors for each plant (if enabled)
 - ✅ Register actions for plant updates
-- ✅ Register frontend resources automatically (custom cards and dashboard strategy)
+- ✅ Register frontend resources automatically (custom plant card and area card)
+- ✅ Generate `garden-care.yaml` with all plant cards grouped by HA area
 
 ### Step 5: Configure AI Agent (Optional - Recommended)
 
@@ -149,7 +150,7 @@ To get the full potential of the integration, configure an AI conversation agent
 The integration automatically registers frontend resources. If custom cards don't appear:
 
 1. Open browser **Developer Tools** (F12) → **Console**
-2. Look for: `PLANT-CARE-CARD Loaded` and `GARDEN-CARE-STRATEGY Loaded`
+2. Look for: `PLANT-CARE-CARD Loaded` and `GARDEN-AREA-CARD Loaded`
 3. If missing, see [Add Resources Manually](#add-resources-manually-if-needed) section below
 
 ## 📊 What You Get
@@ -363,7 +364,7 @@ When you install the integration, it creates a `garden-care.yaml` configuration 
 6. Enter Filename: `garden-care.yaml`
 7. Click **Create**
 
-The dashboard will appear in your sidebar and automatically show all your plants using the `custom:garden-care` strategy.
+The dashboard will appear in your sidebar and automatically show all your plants grouped by Home Assistant area.
 
 The dashboard includes:
 - **Add Plant Form** - Easy form to add new plants at the top
@@ -400,14 +401,11 @@ Each plant card displays:
 If you prefer to create the dashboard manually:
 
 1. **Settings** → **Dashboards** → **Add Dashboard**
-2. Name it "Garden Care" → **Create**
-3. Click **Edit** → **Three dots** → **Raw configuration editor**
-4. Replace content with:
-   ```yaml
-   strategy:
-     type: custom:garden-care
-   ```
-5. **Save**
+2. Enter Title: `Garden Care`, Icon: `mdi:flower`
+3. Select **YAML** mode, Filename: `garden-care.yaml`
+4. Click **Create**
+
+The integration writes and maintains `garden-care.yaml` automatically — no need to edit it.
 
 ### Add Resources Manually (if needed)
 
@@ -433,7 +431,7 @@ If the custom cards still don't appear after a restart:
    - Resource Type: **JavaScript Module**
    - Click **Create**
 
-3. **Add Dashboard Strategy Resource:**
+3. **Add Area Card Resource:**
    - Click **+ Add Resource**
    - URL: `/notion-garden-care/garden-care-strategy.js`
    - Resource Type: **JavaScript Module**
@@ -448,7 +446,7 @@ If the custom cards still don't appear after a restart:
 Open your browser's Developer Tools (F12) and check the Console tab. You should see:
 ```
 PLANT-CARE-CARD  Loaded
-GARDEN-CARE-STRATEGY  Loaded
+GARDEN-AREA-CARD  Loaded
 ```
 
 If you see 404 errors for the JS files, verify the integration is installed correctly in `custom_components/notion_garden_care/` and restart Home Assistant.
