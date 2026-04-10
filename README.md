@@ -14,7 +14,8 @@ Manage your garden with Notion and automate reminders with Home Assistant. Track
 - 🌿 **Automatic Setup** - No coding required, everything happens in Home Assistant UI
 - 🗄️ **Auto-Create Database** - Integration creates the Notion database for you
 - 📅 **Smart Reminders** - Never forget to water, fertilize, or prune
-- 📊 **Auto-Created Dashboard** - Beautiful dashboard with plant cards auto-generated on install
+- 📊 **Auto-Created Dashboard** - Beautiful dashboard with plant cards auto-generated on install, grouped by HA area
+- 📍 **Area-Based Bulk Care** - Group plants by Home Assistant areas and water/fertilize/prune an entire area at once
 - ➕ **Add Plant Form** - Easy form to add new plants directly from the dashboard
 - 🃏 **Custom Plant Cards** - Interactive cards showing care schedules with action buttons
 - 🔄 **Bidirectional Sync** - Update Notion from Home Assistant and vice versa
@@ -141,7 +142,7 @@ To get the full potential of the integration, configure an AI conversation agent
      plant_name: "Lavender"
    ```
    - The AI will automatically fill in all care details (watering schedule, sun exposure, pruning months, etc.) tailored to your local climate using your Home Assistant location settings (coordinates, elevation, country, timezone)
-   - **Location** in Notion is left blank intentionally — fill this in yourself to describe where the plant lives (e.g. "Back garden", "Kitchen windowsill")
+   - After adding, assign the plant's sensor to a **Home Assistant Area** (Settings → Devices & Services → entity → Area) to group it with other plants in the same spot
 
 ### Verify Resources (if cards don't appear)
 
@@ -172,7 +173,7 @@ After setup, you'll have these sensors:
 
 Each plant sensor shows:
 - **State:** Status text ("OK", "Needs Water", "Needs Fertilizer", "Needs Pruning")
-- **Attributes:** All plant properties from Notion (type, location, watering schedule, etc.)
+- **Attributes:** All plant properties from Notion (type, watering schedule, etc.)
 - **Icon:** Changes based on plant type (tree, vegetable, herb, etc.)
 
 #### 📋 Detailed Sensor Logic
@@ -218,7 +219,7 @@ Understanding when plants appear in each sensor:
 Update your plants from Home Assistant (11 actions available):
 
 ```yaml
-# Mark plant as watered (today)
+# Mark single plant as watered (today)
 action: notion_garden_care.mark_as_watered
 data:
   entity_id: sensor.garden_care_tomatoes  # Or use plant_name
@@ -229,10 +230,20 @@ data:
   plant_name: "Tomatoes"
   date: "2026-01-20"
 
+# Water ALL plants in a Home Assistant area at once
+action: notion_garden_care.mark_as_watered
+data:
+  area_id: balcony   # HA area ID — waters every plant sensor in that area
+
 # Mark plant as fertilized
 action: notion_garden_care.mark_as_fertilized
 data:
   plant_name: "Rose Bush"
+
+# Fertilize all plants in an area
+action: notion_garden_care.mark_as_fertilized
+data:
+  area_id: garden
 
 # Mark plant as pruned
 action: notion_garden_care.mark_as_pruned
@@ -280,7 +291,8 @@ action: notion_garden_care.refresh_database
 All `mark_as_*` actions accept:
 - `entity_id` (entity selector) - Select plant from dropdown (or)
 - `plant_name` (string) - Name of the plant (or)
-- `page_id` (string) - Notion page ID
+- `page_id` (string) - Notion page ID (or)
+- `area_id` (area selector) - **Update all plants in a HA area at once**
 - `date` (optional) - Date in YYYY-MM-DD format (defaults to today)
 
 The `update_plant_property` action accepts:
@@ -355,7 +367,11 @@ The dashboard will appear in your sidebar and automatically show all your plants
 
 The dashboard includes:
 - **Add Plant Form** - Easy form to add new plants at the top
+- **Area Headers** - One section per Home Assistant area with **Water All / Fertilize All / Prune All / Harvest All** buttons
 - **Plant Cards** - Individual cards for each plant with care schedules and action buttons
+- Plants not assigned to any HA area appear below all named area sections
+
+> **Tip:** Assign plant sensors to HA areas in **Settings → Devices & Services → (entity) → Area** to see them grouped in the dashboard.
 
 ### Add Plant Card
 
@@ -370,7 +386,6 @@ At the top of the Plants view, you'll find the **Add Plant** form:
 
 Each plant card displays:
 - Plant name with type-specific icon (flower, tree, vegetable, etc.)
-- Location badge
 - Care schedule with both **Next** and **Last** dates:
   - Water: Next date with days until/overdue indicator + last watered date
   - Fertilize: Next date with days until/overdue + last fertilized date
@@ -396,14 +411,15 @@ If you prefer to create the dashboard manually:
 
 ### Add Resources Manually (if needed)
 
-The integration automatically registers the required JavaScript resources on startup. However, if the custom cards don't appear or you see errors, you may need to add them manually.
+On startup the integration automatically registers both JS resources in the global Lovelace resource store (`.storage/lovelace_resources`) and serves them at `/notion-garden-care/`. You should see them listed under **Settings → Dashboards → three dots → Resources**.
+
+If the custom cards still don't appear after a restart:
 
 #### When Manual Setup is Required
 
 - Dashboard shows "Custom element doesn't exist: plant-care-card"
 - Cards appear blank or show errors
 - After upgrading from an older version
-- When using YAML mode dashboards
 
 #### Step-by-Step Resource Setup
 
@@ -457,8 +473,9 @@ The integration creates these properties automatically:
 ### Basic Info
 - **Name** - Plant name
 - **Type** - Plant, Tree, Shrub, Vegetable, Herb, Lawn
-- **Location** - Garden, Balcony, Terrace, etc.
 - **Active** - Is the plant still active?
+
+> **Where's Location?** Location is no longer a Notion field. Use **Home Assistant Areas** instead — assign each plant sensor to an area in Settings → Devices & Services. This integrates with HA natively and enables area-based bulk actions.
 
 ### Sun & Environment
 - **Sun Exposure** - Full Sun, Partial Sun, Partial Shade, Full Shade
@@ -576,6 +593,21 @@ automation:
             🌱 {{ states('sensor.active_plants_count') }} plants total
             💧 {{ states('sensor.plants_to_water') }} need water
             🌿 {{ states('sensor.plants_to_fertilize') }} need fertilizer
+```
+
+### Water an Entire Area
+
+```yaml
+# Water all plants on the balcony every evening
+automation:
+  - alias: "Evening Balcony Watering"
+    trigger:
+      - platform: time
+        at: "19:00:00"
+    actions:
+      - action: notion_garden_care.mark_as_watered
+        data:
+          area_id: balcony
 ```
 
 ### Mark as Done Button
