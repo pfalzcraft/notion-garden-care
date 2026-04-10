@@ -118,7 +118,8 @@ The integration will:
 - ✅ Create individual sensors for each plant (if enabled)
 - ✅ Register actions for plant updates
 - ✅ Register frontend resources automatically (custom plant card and area card)
-- ✅ Generate `garden-care.yaml` with all plant cards grouped by HA area
+- ✅ Create the Garden Care dashboard automatically in YAML mode
+- ✅ Write `garden-care.yaml` with a self-healing root card that discovers plants at runtime
 
 ### Step 5: Configure AI Agent (Optional - Recommended)
 
@@ -150,7 +151,7 @@ To get the full potential of the integration, configure an AI conversation agent
 The integration automatically registers frontend resources. If custom cards don't appear:
 
 1. Open browser **Developer Tools** (F12) → **Console**
-2. Look for: `PLANT-CARE-CARD Loaded` and `GARDEN-AREA-CARD Loaded`
+2. Look for: `PLANT-CARE-CARD Loaded`, `GARDEN-AREA-CARD Loaded`, and `GARDEN-CARE-ROOT-CARD Loaded`
 3. If missing, see [Add Resources Manually](#add-resources-manually-if-needed) section below
 
 ## 📊 What You Get
@@ -353,54 +354,56 @@ Set up reminders in seconds:
 
 ### Dashboard Setup
 
-The integration **automatically creates** the Garden Care dashboard on first install and after any reload. No manual steps are required in most cases.
+The integration **automatically creates** the Garden Care dashboard on first install and after any reload. No manual steps are required.
 
-If you previously created a dashboard manually at the `garden-care` URL (in storage mode), the integration will **automatically detect and replace it** with the correct YAML-mode dashboard on the next reload.
+The dashboard uses a single `custom:garden-care-root-card` element that **auto-discovers all plant sensors at runtime** and groups them by Home Assistant area. This means:
 
-The dashboard will appear in your sidebar and automatically show all your plants grouped by Home Assistant area.
+- **No YAML regeneration** — the dashboard file is static; all dynamic content happens in the browser
+- **Always up to date** — new plants appear automatically after a browser refresh
+- **Self-healing** — if the dashboard is deleted, reload the integration to recreate it; if a wrong-mode dashboard existed at the `garden-care` URL, the integration automatically detects and replaces it
 
 The dashboard includes:
 - **Add Plant Form** - Easy form to add new plants at the top
 - **Area Headers** - One section per Home Assistant area with **Water All / Fertilize All / Prune All / Harvest All** buttons
 - **Plant Cards** - Individual cards for each plant with care schedules and action buttons
-- Plants not assigned to any HA area appear below all named area sections
+- Plants not assigned to any area appear at the bottom
 
-> **Tip:** Assign plant sensors to HA areas in **Settings → Devices & Services → (entity) → Area** to see them grouped in the dashboard.
+> **Tip:** Assign plant sensors to HA areas in **Settings → Devices & Services → (entity) → Area** to group them in the dashboard. Changes appear after the next browser refresh.
 
 ### Add Plant Card
 
-At the top of the Plants view, you'll find the **Add Plant** form:
-- Enter a plant name in the text box
-- Click **Add Plant** to create a new plant with AI-generated care info
-- **Duplicate protection** - Won't create a plant if the name already exists
-- Shows loading spinner while AI processes
-- Displays success/error messages
+At the top of the dashboard you'll find the **Add Plant** form:
+- Enter a plant name and click **Add Plant**
+- AI automatically fills in the full care profile
+- **Duplicate protection** — won't create a plant that already exists
+- Shows loading/success/error feedback inline
 
 ### Plant Care Card
 
 Each plant card displays:
-- Plant name with type-specific icon (flower, tree, vegetable, etc.)
+- **Clickable plant name** — click to open the HA more-info dialog for the entity
+- **Area label** — shown below the plant name in smaller text; updates live when area assignment changes
+- Plant icon that changes based on type (flower, tree, vegetable, etc.)
 - Care schedule with both **Next** and **Last** dates:
-  - Water: Next date with days until/overdue indicator + last watered date
-  - Fertilize: Next date with days until/overdue + last fertilized date
-  - Prune: Months (highlighted if current month) + last pruned date (only shown if plant has prune months)
-  - Harvest: Months (highlighted if current month) + last harvested date (only shown if plant has harvest months)
-  - Aeration/Sanding/Mowed: For lawns only
-- **Info button** - Click to see all plant attributes in a popup
-- **Action buttons** - Mark tasks as complete with visual feedback (loading spinner, success/error states)
+  - Water: next date with overdue indicator + last watered date
+  - Fertilize: next date with overdue indicator + last fertilized date
+  - Prune: months (highlighted if current month) + last pruned date
+  - Harvest: months (highlighted if current month) + last harvested date
+  - Aeration / Sanding / Mowed: lawn plants only
+- **Info button** — click to see all plant attributes in a popup
+- **Action buttons** — mark tasks complete with loading/success/error feedback
+- **Delete button** — remove the plant from Notion (with inline confirmation)
 
 ### Manual Dashboard Setup
 
-If the dashboard wasn't created automatically (e.g. the HA API was unavailable during setup), you can create it manually:
+If the dashboard wasn't created automatically (e.g. the HA API was unavailable during setup):
 
 1. **Settings** → **Dashboards** → **Add Dashboard**
-2. Enter Title: `Garden Care`, Icon: `mdi:flower`
+2. Title: `Garden Care`, Icon: `mdi:flower`
 3. Select **YAML** mode, Filename: `garden-care.yaml`
-4. Click **Create**
+4. Click **Create**, then reload the integration
 
-Then reload the integration — it will write `garden-care.yaml` and populate it with your plants.
-
-> **Tip:** If the dashboard exists but is empty, delete it in **Settings → Dashboards**, then reload the integration. The integration will recreate it correctly in YAML mode.
+> **Tip:** If the dashboard exists but is empty, delete it in **Settings → Dashboards**, then reload the integration. It will be recreated in YAML mode with the self-healing root card.
 
 ### Add Resources Manually (if needed)
 
@@ -440,8 +443,9 @@ If the custom cards still don't appear after a restart:
 
 Open your browser's Developer Tools (F12) and check the Console tab. You should see:
 ```
-PLANT-CARE-CARD  Loaded
-GARDEN-AREA-CARD  Loaded
+PLANT-CARE-CARD         Loaded
+GARDEN-AREA-CARD        Loaded
+GARDEN-CARE-ROOT-CARD   Loaded
 ```
 
 If you see 404 errors for the JS files, verify the integration is installed correctly in `custom_components/notion_garden_care/` and restart Home Assistant.
