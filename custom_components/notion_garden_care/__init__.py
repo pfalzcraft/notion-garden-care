@@ -511,83 +511,27 @@ async def _async_register_lovelace_resources(hass: HomeAssistant) -> None:
 async def _async_generate_dashboard_yaml(
     hass: HomeAssistant, entry: ConfigEntry
 ) -> None:
-    """Write garden-care.yaml with all plant cards grouped by HA area.
+    """Write (or overwrite) garden-care.yaml with the static root card.
 
-    Uses a plain views: structure (no dashboard strategy element) so there is
-    no race condition waiting for a custom element to be registered.
-    The file is regenerated on every coordinator update and whenever entity
-    area assignments change.
+    The custom:garden-care-root-card element discovers all plant sensors at
+    runtime from hass.states and groups them by HA area — no dynamic YAML
+    generation required. This file only needs to be written once.
     """
-    from homeassistant.helpers import area_registry as ar, entity_registry as er
-
-    area_reg = ar.async_get(hass)
-    entity_reg = er.async_get(hass)
-
-    # Collect plant sensor entity_ids from this integration (skip aggregates)
-    _AGGREGATE_FRAGMENTS = ("plants_to_", "active_plants", "database")
-    groups: dict[str, dict] = {}   # area_name → {area_id, entities:[]}
-    no_area: list[str] = []
-
-    for ee in entity_reg.entities.values():
-        if ee.domain != "sensor" or ee.platform != DOMAIN:
-            continue
-        if any(f in ee.entity_id for f in _AGGREGATE_FRAGMENTS):
-            continue
-        if ee.area_id:
-            area = area_reg.async_get_area(ee.area_id)
-            name = area.name if area else ee.area_id
-            if name not in groups:
-                groups[name] = {"area_id": ee.area_id, "entities": []}
-            groups[name]["entities"].append(ee.entity_id)
-        else:
-            no_area.append(ee.entity_id)
-
-    for g in groups.values():
-        g["entities"].sort()
-    no_area.sort()
-
-    # Build the cards section
-    cards = "      - type: custom:add-plant-card\n"
-
-    if not groups and not no_area:
-        cards += (
-            "      - type: markdown\n"
-            "        content: |\n"
-            "          ### No plants found\n"
-            "          Add plants using the form above or directly in your Notion database.\n"
-        )
-    else:
-        for area_name in sorted(groups):
-            g = groups[area_name]
-            safe = area_name.replace('"', '\\"')
-            cards += (
-                f"      - type: custom:garden-area-card\n"
-                f"        area: \"{safe}\"\n"
-                f"        area_id: \"{g['area_id']}\"\n"
-            )
-            for eid in g["entities"]:
-                cards += f"      - type: custom:plant-care-card\n        entity: {eid}\n"
-        for eid in no_area:
-            cards += f"      - type: custom:plant-care-card\n        entity: {eid}\n"
-
-    # Sub-dashboard YAML files must only contain `views:` — the `resources:` key
-    # is only valid in the main ui-lovelace.yaml and will cause a parse error here.
-    # JS resources are registered separately via _async_register_lovelace_resources.
     yaml_content = (
-        f"views:\n"
-        f"  - title: Plants\n"
-        f"    path: plants\n"
-        f"    icon: mdi:flower\n"
-        f"    cards:\n"
-        f"{cards}"
+        "# Garden Care Dashboard — managed by the Notion Garden Care integration.\n"
+        "# The garden-care-root-card auto-discovers plants and groups them by HA area.\n"
+        "# Do not add cards here manually; they will be overwritten on the next reload.\n"
+        "views:\n"
+        "  - title: Plants\n"
+        "    path: plants\n"
+        "    icon: mdi:flower\n"
+        "    cards:\n"
+        "      - type: custom:garden-care-root-card\n"
     )
 
     yaml_path = hass.config.path("garden-care.yaml")
     await hass.async_add_executor_job(_write_file, yaml_path, yaml_content)
-    _LOGGER.info(
-        "Wrote garden-care.yaml: %d area groups, %d ungrouped plants",
-        len(groups), len(no_area),
-    )
+    _LOGGER.info("Wrote garden-care.yaml (static root card)")
 
 
 async def _async_create_dashboard(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -863,25 +807,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # contains all plant sensors and area assignments can be read.
     await _async_create_dashboard(hass, entry)
 
-    # Keep the YAML up-to-date: regenerate on coordinator data updates …
-    coordinator = hass.data[DOMAIN][entry.entry_id].get("coordinator")
-    if coordinator:
-        async def _on_coordinator_updated() -> None:
-            await _async_generate_dashboard_yaml(hass, entry)
-        entry.async_on_unload(coordinator.async_add_listener(_on_coordinator_updated))
-
-    # … and when entity area assignments change in HA
-    from homeassistant.core import callback as ha_callback
-
-    @ha_callback
-    def _on_entity_registry_updated(event) -> None:
-        if (event.data.get("action") == "update"
-                and "area_id" in event.data.get("changes", {})):
-            hass.async_create_task(_async_generate_dashboard_yaml(hass, entry))
-
-    entry.async_on_unload(
-        hass.bus.async_listen("entity_registry_updated", _on_entity_registry_updated)
-    )
+    # The YAML now contains only a static custom:garden-care-root-card element
+    # which discovers plants and areas at runtime — no listeners needed.
 
     # Helper to get page_id from entity, page_id, or plant_name
     def _get_page_id_from_call(call: ServiceCall) -> str | None:

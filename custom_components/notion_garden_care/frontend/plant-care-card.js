@@ -235,6 +235,15 @@ class PlantCareCard extends HTMLElement {
     const state = this._hass.states[entityId];
     if (!state) return;
 
+    // Update area label (user may have changed area assignment)
+    const areaId = this._hass.entities?.[entityId]?.area_id ?? null;
+    const areaName = areaId ? (this._hass.areas?.[areaId]?.name ?? null) : null;
+    const areaEl = this.shadowRoot.getElementById('plant-area');
+    if (areaEl) {
+      areaEl.textContent = areaName || '';
+      areaEl.style.display = areaName ? '' : 'none';
+    }
+
     const attrs = state.attributes;
     const isLawn = (attrs.type || 'Plant') === 'Lawn';
 
@@ -337,6 +346,8 @@ class PlantCareCard extends HTMLElement {
     const attrs = state.attributes;
     const plantName = attrs.plant_name || attrs.name || state.entity_id;
     const plantType = attrs.type || 'Plant';
+    const areaId   = this._hass.entities?.[entityId]?.area_id ?? null;
+    const areaName = areaId ? (this._hass.areas?.[areaId]?.name ?? null) : null;
     const isLawn = plantType === 'Lawn';
 
     // Get care schedule data - next dates
@@ -386,10 +397,27 @@ class PlantCareCard extends HTMLElement {
           --mdc-icon-size: 32px;
           color: var(--primary-color);
         }
+        .plant-title {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
         .plant-name {
           font-size: 1.2em;
           font-weight: 500;
           color: var(--primary-text-color);
+          cursor: pointer;
+          transition: color 0.15s;
+        }
+        .plant-name:hover {
+          color: var(--primary-color);
+          text-decoration: underline;
+        }
+        .plant-area {
+          font-size: 0.75em;
+          font-weight: 400;
+          color: var(--secondary-text-color);
+          line-height: 1.2;
         }
         .care-schedule {
           display: flex;
@@ -619,7 +647,10 @@ class PlantCareCard extends HTMLElement {
         <div class="header">
           <div class="header-left">
             <ha-icon class="plant-icon" icon="${this.getPlantIcon(plantType)}"></ha-icon>
-            <span class="plant-name">${plantName}</span>
+            <div class="plant-title">
+              <span class="plant-name" id="plant-name-link">${plantName}</span>
+              <span class="plant-area" id="plant-area" style="${areaName ? '' : 'display:none'}">${areaName || ''}</span>
+            </div>
           </div>
           <ha-icon class="info-icon" icon="mdi:information-outline" id="info-toggle" title="Show all attributes"></ha-icon>
         </div>
@@ -740,6 +771,16 @@ class PlantCareCard extends HTMLElement {
         </div>
       </div>
     `;
+
+    // Clicking the plant name opens the HA more-info dialog
+    this.shadowRoot.getElementById('plant-name-link')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.dispatchEvent(new CustomEvent('hass-more-info', {
+        bubbles: true,
+        composed: true,
+        detail: { entityId },
+      }));
+    });
 
     // Add event listener for info popup
     const overlay = this.shadowRoot.getElementById('popup-overlay');
