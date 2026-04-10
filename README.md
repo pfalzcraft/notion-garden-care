@@ -353,16 +353,9 @@ Set up reminders in seconds:
 
 ### Dashboard Setup
 
-When you install the integration, it creates a `garden-care.yaml` configuration file and shows a notification with setup instructions.
+The integration **automatically creates** the Garden Care dashboard on first install and after any reload. No manual steps are required in most cases.
 
-**One-time setup** (takes 30 seconds):
-1. Go to **Settings → Dashboards**
-2. Click **Add Dashboard**
-3. Enter Title: `Garden Care`
-4. Enter Icon: `mdi:flower`
-5. Select **YAML** mode
-6. Enter Filename: `garden-care.yaml`
-7. Click **Create**
+If you previously created a dashboard manually at the `garden-care` URL (in storage mode), the integration will **automatically detect and replace it** with the correct YAML-mode dashboard on the next reload.
 
 The dashboard will appear in your sidebar and automatically show all your plants grouped by Home Assistant area.
 
@@ -398,14 +391,16 @@ Each plant card displays:
 
 ### Manual Dashboard Setup
 
-If you prefer to create the dashboard manually:
+If the dashboard wasn't created automatically (e.g. the HA API was unavailable during setup), you can create it manually:
 
 1. **Settings** → **Dashboards** → **Add Dashboard**
 2. Enter Title: `Garden Care`, Icon: `mdi:flower`
 3. Select **YAML** mode, Filename: `garden-care.yaml`
 4. Click **Create**
 
-The integration writes and maintains `garden-care.yaml` automatically — no need to edit it.
+Then reload the integration — it will write `garden-care.yaml` and populate it with your plants.
+
+> **Tip:** If the dashboard exists but is empty, delete it in **Settings → Dashboards**, then reload the integration. The integration will recreate it correctly in YAML mode.
 
 ### Add Resources Manually (if needed)
 
