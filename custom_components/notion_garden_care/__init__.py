@@ -570,12 +570,10 @@ async def _async_generate_dashboard_yaml(
         for eid in no_area:
             cards += f"      - type: custom:plant-care-card\n        entity: {eid}\n"
 
+    # Sub-dashboard YAML files must only contain `views:` — the `resources:` key
+    # is only valid in the main ui-lovelace.yaml and will cause a parse error here.
+    # JS resources are registered separately via _async_register_lovelace_resources.
     yaml_content = (
-        f"resources:\n"
-        f"  - url: {URL_BASE}/plant-care-card.js?v={FRONTEND_VERSION}\n"
-        f"    type: module\n"
-        f"  - url: {URL_BASE}/garden-care-strategy.js?v={FRONTEND_VERSION}\n"
-        f"    type: module\n"
         f"views:\n"
         f"  - title: Plants\n"
         f"    path: plants\n"
