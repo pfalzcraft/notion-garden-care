@@ -171,7 +171,7 @@ class GardenCareRootCard extends HTMLElement {
         .add-plant-wrapper { margin-bottom: 16px; }
         .grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
           gap: 12px;
           align-items: start;
         }
@@ -197,7 +197,7 @@ class GardenCareRootCard extends HTMLElement {
     const addCard = document.createElement('add-plant-card');
     addCard.setConfig({});
     addCard.hass = hass;
-    root.getElementById('add-plant').appendChild(addCard);
+    root.querySelector('#add-plant').appendChild(addCard);
     this._childCards.push(addCard);
 
     // ── Collect plant entities ─────────────────────────────────────────────
@@ -219,7 +219,7 @@ class GardenCareRootCard extends HTMLElement {
       })
       .sort((a, b) => a.entityId.localeCompare(b.entityId));
 
-    const grid = root.getElementById('grid');
+    const grid = root.querySelector('#grid');
 
     if (plants.length === 0) {
       const msg = document.createElement('p');

@@ -525,6 +525,7 @@ async def _async_generate_dashboard_yaml(
         "  - title: Plants\n"
         "    path: plants\n"
         "    icon: mdi:flower\n"
+        "    panel: true\n"
         "    cards:\n"
         "      - type: custom:garden-care-root-card\n"
     )
