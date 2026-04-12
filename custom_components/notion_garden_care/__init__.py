@@ -394,10 +394,19 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 
 async def _async_register_frontend(hass: HomeAssistant) -> None:
-    """Register frontend resources for the custom card and dashboard."""
-    # Only register once
+    """Register frontend resources for the custom card.
+
+    _async_register_lovelace_resources is always called so the version
+    query-string in .storage/lovelace_resources stays current across
+    integration reloads.  Static-path and add_extra_js_url registration
+    only happens once per HA session (they raise if called a second time).
+    """
+    # Always keep the lovelace_resources file up to date (handles version bumps).
+    await _async_register_lovelace_resources(hass)
+
+    # Static path + add_extra_js_url only need to run once per HA session.
     if hass.data[DOMAIN].get("frontend_loaded"):
-        _LOGGER.debug("Frontend already loaded, skipping registration")
+        _LOGGER.debug("Frontend JS already registered for this session, skipping")
         return
 
     frontend_path = Path(__file__).parent / "frontend"
@@ -406,15 +415,6 @@ async def _async_register_frontend(hass: HomeAssistant) -> None:
     if not frontend_path.exists():
         _LOGGER.error("Frontend path does not exist: %s", frontend_path)
         return
-
-    # List files in frontend directory for debugging (in executor to avoid blocking)
-    try:
-        def _list_files():
-            return [f.name for f in frontend_path.iterdir()]
-        files = await hass.async_add_executor_job(_list_files)
-        _LOGGER.info("Frontend files: %s", files)
-    except Exception as err:
-        _LOGGER.error("Could not list frontend directory: %s", err)
 
     # Register static path for serving JS files using async method
     try:
@@ -440,10 +440,6 @@ async def _async_register_frontend(hass: HomeAssistant) -> None:
         _LOGGER.info("Added frontend JS resources: %s, %s", card_url, strategy_url)
     except Exception as err:
         _LOGGER.error("Failed to add extra JS URLs: %s", err)
-
-    # Also register in the global Lovelace resource store so resources load
-    # reliably for all dashboards (including the auto-generated one).
-    await _async_register_lovelace_resources(hass)
 
     hass.data[DOMAIN]["frontend_loaded"] = True
 
