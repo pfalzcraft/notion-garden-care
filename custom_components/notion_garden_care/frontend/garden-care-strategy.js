@@ -167,7 +167,7 @@ class GardenCareRootCard extends HTMLElement {
 
     root.innerHTML = `
       <style>
-        :host { display: block; }
+        :host { display: block; padding: 8px; box-sizing: border-box; }
         .add-plant-wrapper { margin-bottom: 16px; }
         .grid {
           display: grid;

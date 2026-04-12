@@ -521,13 +521,18 @@ async def _async_generate_dashboard_yaml(
         "# Garden Care Dashboard — managed by the Notion Garden Care integration.\n"
         "# The garden-care-root-card auto-discovers plants and groups them by HA area.\n"
         "# Do not add cards here manually; they will be overwritten on the next reload.\n"
+        # sections view (HA 2024.1+): gives the root card the full view width
+        # without panel:true, which skips customElements.whenDefined() and
+        # causes "element not found" errors on hard refresh (Ctrl+Shift+R).
         "views:\n"
         "  - title: Plants\n"
         "    path: plants\n"
         "    icon: mdi:flower\n"
-        "    panel: true\n"
-        "    cards:\n"
-        "      - type: custom:garden-care-root-card\n"
+        "    type: sections\n"
+        "    max_columns: 1\n"
+        "    sections:\n"
+        "      - cards:\n"
+        "          - type: custom:garden-care-root-card\n"
     )
 
     yaml_path = hass.config.path("garden-care.yaml")
