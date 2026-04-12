@@ -41,62 +41,68 @@ class GardenAreaCard extends HTMLElement {
     this.shadowRoot.innerHTML = `
       <style>
         :host { display: block; }
-        .area-header {
+        .area-card {
           display: flex;
-          align-items: center;
-          flex-wrap: wrap;
-          gap: 8px;
-          padding: 14px 16px 12px;
+          flex-direction: column;
+          gap: 12px;
+          padding: 18px 16px 16px;
+          /* Theme-aware background: uses the HA accent/primary color */
           background: var(--primary-color, #03a9f4);
           border-radius: var(--ha-card-border-radius, 12px);
           overflow: hidden;
           position: relative;
-          min-height: 60px;
+          min-height: 90px;
         }
-        .area-header.has-picture {
+        .area-card.has-picture {
           background-size: cover;
           background-position: center;
         }
-        /* Dark overlay for text readability when a picture is set */
-        .area-header.has-picture::before {
+        .area-card.has-picture::before {
           content: '';
           position: absolute;
           inset: 0;
           background: rgba(0, 0, 0, 0.48);
         }
+        /* --text-primary-color is HA's designated text color for primary-color backgrounds */
         .area-name {
-          font-size: 1.1em;
+          font-size: 1.15em;
           font-weight: 600;
-          color: #fff;
-          flex: 1;
-          min-width: 100px;
+          color: var(--text-primary-color, #fff);
           position: relative;
           z-index: 1;
-          text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+        }
+        .actions-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          position: relative;
+          z-index: 1;
         }
         .action-btn {
-          background: rgba(255,255,255,0.22);
-          color: #fff;
-          border: none;
+          /* Semi-transparent overlay on the theme's primary color */
+          background: rgba(255, 255, 255, 0.18);
+          color: var(--text-primary-color, #fff);
+          border: 1px solid rgba(255, 255, 255, 0.35);
           border-radius: 8px;
-          padding: 6px 10px;
-          font-size: 0.8em;
+          padding: 8px 13px;
+          font-size: 0.82em;
           cursor: pointer;
-          transition: background 0.15s;
+          transition: background 0.15s, border-color 0.15s;
           white-space: nowrap;
-          position: relative;
-          z-index: 1;
           backdrop-filter: blur(4px);
         }
-        .action-btn:hover  { background: rgba(255,255,255,0.38); }
-        .action-btn:active { background: rgba(255,255,255,0.15); }
+        .action-btn:hover  { background: rgba(255, 255, 255, 0.32); border-color: rgba(255,255,255,0.6); }
+        .action-btn:active { background: rgba(255, 255, 255, 0.10); }
       </style>
-      <div class="area-header ${picture ? 'has-picture' : ''}"
+      <div class="area-card ${picture ? 'has-picture' : ''}"
            ${picture ? `style="background-image:url('${picture}')"` : ''}>
-        <span class="area-name">📍 ${areaName}</span>
-        ${actions.map(a =>
-          `<button class="action-btn" data-service="${a.service}">${a.label}</button>`
-        ).join('')}
+        <div class="area-name">📍 ${areaName}</div>
+        <div class="actions-row">
+          ${actions.map(a =>
+            `<button class="action-btn" data-service="${a.service}">${a.label}</button>`
+          ).join('')}
+        </div>
       </div>
     `;
 
