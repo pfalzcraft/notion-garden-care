@@ -14,7 +14,7 @@ Manage your garden with Notion and automate reminders with Home Assistant. Track
 - 🌿 **Automatic Setup** - No coding required, everything happens in the Home Assistant UI
 - 🗄️ **Auto-Create Database** - Integration creates the Notion database for you
 - 📅 **Smart Reminders** - Never forget to water, fertilize, or prune
-- 📊 **Self-Healing Dashboard** - Auto-created on install; discovers plants at runtime, always up to date
+- 📊 **Self-Healing Dashboard Card** - Drop `custom:garden-care-root-card` in any dashboard; discovers plants at runtime
 - 📍 **Area-Based Bulk Care** - Group plants by HA area and water/fertilize/prune an entire area at once
 - 🖼️ **Area Background Images** - Area section headers use your HA area picture automatically
 - 🏗️ **Responsive Grid Layout** - Plants arranged in a multi-column grid, one column per area
@@ -109,9 +109,7 @@ The integration will:
 - ✅ Create the "Garden Care" database in Notion with all properties and formulas
 - ✅ Add 5 example plants (Tomatoes, Rose, Apple Tree, Basil, Lawn)
 - ✅ Create aggregate sensors and individual plant sensors in Home Assistant
-- ✅ Register frontend resources automatically
-- ✅ Create the Garden Care dashboard in YAML mode
-- ✅ Write `garden-care.yaml` with the self-healing root card
+- ✅ Register frontend resources automatically (JS cards loaded on every dashboard)
 
 ### Step 5: Configure AI Agent (Optional - Recommended)
 
@@ -138,9 +136,9 @@ After setup, assign each plant sensor to a Home Assistant area to enable area gr
 
 1. **Settings** → **Devices & Services** → find a plant sensor → click it
 2. Click the **Area** field → select or create an area
-3. The dashboard groups and grid update automatically on the next browser refresh
+3. The `garden-care-root-card` groups and grid update automatically on the next browser refresh
 
-> **Tip:** Set an area picture in **Settings** → **Areas** — it becomes the background image of that area's section header in the dashboard.
+> **Tip:** Set an area picture in **Settings** → **Areas** — it becomes the background image of that area's section header card.
 
 ## 📊 What You Get
 
@@ -236,16 +234,31 @@ Set up reminders in seconds via **Settings** → **Automations & Scenes** → **
 
 ## 📱 Dashboard
 
-### How It Works
+### Setting Up the Dashboard
 
-The dashboard is created automatically on install. It uses a single `custom:garden-care-root-card` that:
+The integration does **not** create a dashboard automatically — you add the root card to any existing dashboard yourself.
+
+1. **Settings** → **Dashboards** → open your dashboard → **Edit** (pencil icon)
+2. Add a card → choose **Manual card** (YAML editor)
+3. Paste:
+
+```yaml
+type: custom:garden-care-root-card
+```
+
+4. Save. The card discovers all your plants and areas automatically — no further YAML configuration needed.
+
+> **Tip:** Place the card in a full-width section (or set the view to `panel: true`) so the grid can use the full screen width.
+
+### How the Root Card Works
+
+`custom:garden-care-root-card` is a self-contained card that:
 
 - **Auto-discovers** all plant sensors from `hass.states` at page load — no YAML regeneration needed
 - **Groups by HA area** using live `hass.entities` / `hass.areas` data
 - **Responsive grid** — one column per area, adapts to any screen width
 - **Area background images** — uses your HA area picture as the section header background
 - **Rebuilds automatically** when plants are added or area assignments change
-- **Self-healing** — if deleted, reload the integration to recreate it
 
 ### Plant Care Card
 
@@ -276,16 +289,6 @@ Each HA area gets its own column with:
 
 Plants not assigned to any area appear in a separate column at the end.
 
-### Manual Dashboard Setup
-
-If the dashboard wasn't created automatically:
-
-1. **Settings** → **Dashboards** → **Add Dashboard**
-2. Title: `Garden Care`, Icon: `mdi:flower`
-3. Select **YAML** mode, Filename: `garden-care.yaml`
-4. Click **Create**, then reload the integration
-
-> **If the dashboard is empty or stuck:** delete it in **Settings → Dashboards**, then reload the integration. It will be recreated automatically in YAML mode.
 
 ## 🌱 Notion Database Structure
 
@@ -339,7 +342,7 @@ The integration creates these properties automatically:
   Plant sensors created
   Aggregate sensors updated hourly
   Actions + automations available
-  Self-healing dashboard in sidebar
+  `garden-care-root-card` displays plants grouped by area
 ```
 
 ## 📝 Example Use Cases
@@ -391,13 +394,13 @@ icon: mdi:watering-can
 
 ## 🐛 Troubleshooting
 
-### Dashboard is empty or not created
+### Dashboard card shows no plants
 
-1. Delete any existing "garden-care" dashboard in **Settings → Dashboards**
-2. Reload the integration: **Settings → Devices & Services → Notion Garden Care → ⋮ → Reload**
-3. Hard-refresh your browser: **Ctrl+Shift+R**
+1. Reload the integration: **Settings → Devices & Services → Notion Garden Care → ⋮ → Reload**
+2. Hard-refresh your browser: **Ctrl+Shift+R**
+3. Verify sensors exist: **Developer Tools → States** → search for `sensor.garden_care_`
 
-The integration automatically creates a YAML-mode dashboard and writes `garden-care.yaml`. The self-healing root card discovers your plants at page load — no additional setup needed.
+The `custom:garden-care-root-card` discovers plants from `hass.states` at page load. If sensors exist but plants don't appear, ensure the card is loading its JS resources (see below).
 
 ### Cards don't appear (custom element errors)
 
