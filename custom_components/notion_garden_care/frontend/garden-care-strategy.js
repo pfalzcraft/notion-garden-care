@@ -121,10 +121,11 @@ class GardenAreaCard extends HTMLElement {
 class GardenCareRootCard extends HTMLElement {
   constructor() {
     super();
-    this._hass       = null;
-    this._layoutKey  = null;
-    this._childCards = [];
-    this._buildId    = 0;
+    this._hass          = null;
+    this._layoutKey     = null;
+    this._childCards    = [];
+    this._buildId       = 0;
+    this._resizeObserver = null;
     this.attachShadow({ mode: 'open' });
     this.shadowRoot.innerHTML = '<style>:host{display:block}</style>';
   }
@@ -173,18 +174,21 @@ class GardenCareRootCard extends HTMLElement {
 
     root.innerHTML = `
       <style>
-        :host { display: block; padding: 8px; box-sizing: border-box; }
+        :host { display: block; width: 100%; padding: 8px; box-sizing: border-box; }
         .add-plant-wrapper { margin-bottom: 16px; }
         .grid {
           display: grid;
+          /* Fallback — ResizeObserver overrides this with an explicit repeat() */
           grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
           gap: 12px;
           align-items: start;
+          width: 100%;
         }
         .area-column {
           display: flex;
           flex-direction: column;
           gap: 6px;
+          min-width: 0;
         }
         .empty-msg {
           padding: 20px;
@@ -196,6 +200,12 @@ class GardenCareRootCard extends HTMLElement {
       <div class="add-plant-wrapper" id="add-plant"></div>
       <div class="grid" id="grid"></div>
     `;
+
+    // Disconnect any previous observer before re-attaching
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect();
+      this._resizeObserver = null;
+    }
 
     this._childCards = [];
 
@@ -281,6 +291,19 @@ class GardenCareRootCard extends HTMLElement {
       for (const p of noArea) col.appendChild(_mkPlantCard(p.entityId));
       grid.appendChild(col);
     }
+
+    // ── Responsive columns via ResizeObserver ──────────────────────────────
+    // CSS auto-fill can misreport available width inside shadow DOM / HA card
+    // wrappers. Measuring the real pixel width and setting an explicit repeat()
+    // is the most reliable cross-browser solution.
+    this._resizeObserver = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const w = entry.contentBoxSize?.[0]?.inlineSize ?? entry.contentRect.width;
+        const cols = Math.max(1, Math.floor(w / 320));
+        entry.target.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+      }
+    });
+    this._resizeObserver.observe(grid);
   }
 }
 
